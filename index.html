@@ -308,7 +308,7 @@ function lineChart(host, o) {
     });
     s += `<path d="${d}" fill="none" stroke="${se.color}" stroke-width="${se.width || 2}" stroke-linejoin="round" stroke-linecap="round"/>`;
     const li = se.values.map((v, i) => v != null && isFinite(v) ? i : -1).filter(i => i >= 0).pop();
-    if (li != null && o.endLabels) ends.push({y: Y(se.values[li]), x: X(li), name: se.name, color: se.color, v: se.values[li]});
+    if (li != null && o.endLabels) ends.push({y: Y(se.values[li]), x: X(li), name: se.corto || se.name, color: se.color, v: se.values[li]});
   });
   // etiquetas al final de cada línea, sin superponerse
   ends.sort((a, b) => a.y - b.y);
@@ -433,7 +433,7 @@ function initEstrategias() {
 function dibujarEstrategias() {
   const E = D.estr, f = E.tabla.find(x => x.clave === claveSel);
   const series = [
-    {name: f.estrategia + " · top " + f.top, values: E.curvas[claveSel], color: css("--s1"), width: 2.5},
+    {name: f.estrategia + " · top " + f.top, corto: "Estrategia", values: E.curvas[claveSel], color: css("--s1"), width: 2.5},
     {name: "SPY", values: E.referencias.SPY, color: css("--s2")},
     {name: "Universo", values: E.referencias.Universo, color: css("--s3")},
   ];
