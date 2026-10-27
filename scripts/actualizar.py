@@ -26,7 +26,8 @@ RAIZ = Path(__file__).resolve().parents[1]
 DATA = RAIZ / "data"
 DATA.mkdir(exist_ok=True)
 CFG = json.loads((RAIZ / "config.json").read_text(encoding="utf-8"))
-TOP = int(CFG["top"])
+TOPS = [int(x) for x in CFG.get("tops", [CFG.get("top", 10)])]
+TOP = max(TOPS)
 MESES = list(CFG["meses_revision"])
 COSTO = float(CFG["costo_lado"])
 INICIO = pd.Timestamp(CFG["inicio"])
@@ -128,7 +129,7 @@ def ultimo_habil(fin_mes):
     return d
 
 
-def simular(A, completos):
+def simular(A, completos, TOP):
     """Recorre los meses completos: elige en los meses de revisión, cobra el retorno del mes siguiente."""
     mom = A.shift(1) / A.shift(12) - 1
     ret = A.pct_change(fill_method=None).shift(-1)
@@ -277,17 +278,20 @@ def actualizar_fichas(tickers, info):
 
 
 # ============================================================ aviso por mail (issue de GitHub)
-def avisar(revision, salen, entran, cartera):
+def avisar(revision, cambios):
+    """cambios: {top: (salen, entran, cartera)}"""
     if not GH_TOKEN:
         return
     dueño = GH_REPO.split("/")[0]
-    cuerpo = (f"@{dueño} hay revisión de cartera ({revision}).\n\n"
-              f"**Vender:** {', '.join(salen) or 'nada'}\n\n**Comprar:** {', '.join(entran) or 'nada'}\n\n"
-              f"**Cartera nueva (partes iguales):** {', '.join(cartera)}\n\nDetalle en el dashboard.")
+    partes = [f"@{dueño} hay revisión de cartera ({revision}).\n"]
+    for top, (salen, entran, cartera) in cambios.items():
+        partes.append(f"### Cartera de {top}\n**Vender:** {', '.join(salen) or 'nada'}  \n**Comprar:** {', '.join(entran) or 'nada'}  \n"
+                      f"**Queda (partes iguales):** {', '.join(cartera)}\n")
+    partes.append("Detalle en el dashboard.")
     try:
         r = SES.post(f"https://api.github.com/repos/{GH_REPO}/issues", timeout=30,
                      headers={"Authorization": f"Bearer {GH_TOKEN}", "Accept": "application/vnd.github+json"},
-                     json={"title": f"Revisión de cartera {revision}: vender {len(salen)}, comprar {len(entran)}", "body": cuerpo})
+                     json={"title": f"Revisión de cartera {revision}", "body": "\n".join(partes)})
         log("aviso:", r.status_code)
     except requests.RequestException as e:
         log("no se pudo avisar:", e)
@@ -301,63 +305,67 @@ def main():
     ult_dia = info["SPY"]["ultimo_dia"]
     # un mes está "completo" cuando ya cerró su último día hábil
     completos = [d for d in A.index if ult_dia >= ultimo_habil(d)]
-    S, historial, mom = simular(A, completos)
-    if not historial:
-        raise SystemExit("No se pudo armar ninguna cartera.")
-
-    vigente = historial[-1]
-    anterior = historial[-2] if len(historial) > 1 else {"fecha": None, "tickers": []}
-    salen = [t for t in anterior["tickers"] if t not in vigente["tickers"]]
-    entran = [t for t in vigente["tickers"] if t not in anterior["tickers"]]
+    variantes, revision_actual = {}, None
+    ult = A.ffill().iloc[-1]
+    for top in TOPS:
+        S, historial, mom = simular(A, completos, top)
+        if not historial:
+            raise SystemExit("No se pudo armar ninguna cartera.")
+        vigente = historial[-1]
+        anterior = historial[-2] if len(historial) > 1 else {"fecha": None, "tickers": []}
+        f0 = pd.Timestamp(vigente["fecha"])
+        desde = {t: r4(ult[t] / A.at[f0, t] - 1) for t in vigente["tickers"] if t in A.columns}
+        ult5 = S.index >= S.index[-1] - pd.DateOffset(years=5)
+        revision_actual = vigente["fecha"]
+        variantes[str(top)] = {
+            "cartera": {"fecha": vigente["fecha"], "tickers": vigente["tickers"], "momentum_eleccion": vigente["momentum"],
+                        "desde_eleccion": desde, "spy_desde_eleccion": r4(ult["SPY"] / A.at[f0, "SPY"] - 1)},
+            "cambios": {"desde": anterior["fecha"], "salen": [t for t in anterior["tickers"] if t not in vigente["tickers"]],
+                        "entran": [t for t in vigente["tickers"] if t not in anterior["tickers"]]},
+            "historial": historial[-12:],
+            "curva": {"fechas": [f"{d:%Y-%m}" for d in S.index],
+                      "estrategia": [r4(v) for v in (1 + S.estrategia).cumprod()],
+                      "spy": [r4(v) for v in (1 + S.spy).cumprod()]},
+            "resumen": {"anual": r4(anual(S.estrategia)), "anual_spy": r4(anual(S.spy)),
+                        "anual_5": r4(anual(S.estrategia[ult5])), "anual_spy_5": r4(anual(S.spy[ult5])),
+                        "caida_max": r4(caida(S.estrategia)), "caida_max_spy": r4(caida(S.spy)),
+                        "anios_perdedores": int(sum(1 for _, g in S.estrategia.groupby(S.index.year) if (1 + g).prod() < 1)),
+                        "anios": int(S.index.year.nunique()), "desde": f"{S.index[0]:%Y-%m}"},
+        }
+        log(f"top {top} | cartera {vigente['fecha']}: {', '.join(vigente['tickers'])}")
 
     # próxima revisión: último día hábil del próximo mes de revisión
     prox, m = None, pd.Timestamp(ult_dia.year, ult_dia.month, 1) + pd.offsets.MonthEnd(0)
     for _ in range(13):
-        if m.month in MESES and ultimo_habil(m) > pd.Timestamp(vigente["fecha"]):
+        if m.month in MESES and ultimo_habil(m) > pd.Timestamp(revision_actual):
             prox = ultimo_habil(m); break
         m = m + pd.offsets.MonthEnd(1)
 
-    # cómo le va a la cartera vigente desde que se eligió
-    f0 = pd.Timestamp(vigente["fecha"])
-    ult = A.ffill().iloc[-1]
-    desde = {t: r4(ult[t] / A.at[f0, t] - 1) for t in vigente["tickers"] if t in A.columns}
-    spy_desde = r4(ult["SPY"] / A.at[f0, "SPY"] - 1)
-
     # candidatas: cómo quedaría el ranking si la revisión fuera hoy
     mom_hoy = (A.ffill().shift(1).iloc[-1] / A.ffill().shift(12).iloc[-1] - 1)[CEDEARS_OK].dropna().sort_values(ascending=False)
-    candidatas = [{"ticker": t, "momentum": r4(v), "en_cartera": t in vigente["tickers"]} for t, v in mom_hoy.head(N_CAND).items()]
+    candidatas = [{"ticker": t, "momentum": r4(v)} for t, v in mom_hoy.head(N_CAND).items()]
 
-    fichas = actualizar_fichas(list(dict.fromkeys(vigente["tickers"] + [c["ticker"] for c in candidatas])), info)
+    en_cartera = list(dict.fromkeys(sum((v["cartera"]["tickers"] for v in variantes.values()), [])))
+    fichas = actualizar_fichas(list(dict.fromkeys(en_cartera + [c["ticker"] for c in candidatas])), info)
     guardar("fichas.json", fichas)
 
-    ult5 = S.index >= S.index[-1] - pd.DateOffset(years=5)
     previo = leer("momentum.json", {})
     salida = {
         "generado": f"{AHORA.astimezone(timezone(timedelta(hours=-3))):%Y-%m-%d %H:%M}",
         "precios_al": f"{ult_dia:%Y-%m-%d}",
-        "regla": {"top": TOP, "meses_revision": MESES, "costo_lado": COSTO, "universo": len(CEDEARS_OK)},
-        "cartera": {"fecha": vigente["fecha"], "tickers": vigente["tickers"], "momentum_eleccion": vigente["momentum"],
-                    "desde_eleccion": desde, "spy_desde_eleccion": spy_desde},
-        "cambios": {"desde": anterior["fecha"], "salen": salen, "entran": entran},
+        "regla": {"tops": TOPS, "meses_revision": MESES, "costo_lado": COSTO, "universo": len(CEDEARS_OK)},
+        "revision": revision_actual,
         "proxima_revision": f"{prox:%Y-%m-%d}" if prox is not None else None,
+        "variantes": variantes,
         "candidatas": candidatas,
-        "historial": historial[-12:],
-        "curva": {"fechas": [f"{d:%Y-%m}" for d in S.index],
-                  "estrategia": [r4(v) for v in (1 + S.estrategia).cumprod()],
-                  "spy": [r4(v) for v in (1 + S.spy).cumprod()],
-                  "universo": [r4(v) for v in (1 + S.universo.fillna(0)).cumprod()]},
-        "resumen": {"anual": r4(anual(S.estrategia)), "anual_spy": r4(anual(S.spy)), "anual_universo": r4(anual(S.universo)),
-                    "anual_5": r4(anual(S.estrategia[ult5])), "anual_spy_5": r4(anual(S.spy[ult5])),
-                    "caida_max": r4(caida(S.estrategia)), "caida_max_spy": r4(caida(S.spy)),
-                    "anios_perdedores": int(sum(1 for _, g in S.estrategia.groupby(S.index.year) if (1 + g).prod() < 1)),
-                    "anios": int(S.index.year.nunique()), "desde": f"{S.index[0]:%Y-%m}"},
-        "nombres": {t: fichas.get(t, {}).get("nombre") for t in set(vigente["tickers"]) | {c["ticker"] for c in candidatas}},
+        "nombres": {t: fichas.get(t, {}).get("nombre") for t in set(en_cartera) | {c["ticker"] for c in candidatas}},
     }
     guardar("momentum.json", salida)
-    log(f"cartera {vigente['fecha']}: {', '.join(vigente['tickers'])} | próxima revisión {salida['proxima_revision']}")
+    log(f"próxima revisión {salida['proxima_revision']}")
 
-    if previo and previo.get("cartera", {}).get("fecha") != vigente["fecha"]:
-        avisar(vigente["fecha"], salen, entran, vigente["tickers"])
+    fecha_previa = previo.get("revision") or (previo.get("cartera") or {}).get("fecha")
+    if previo and fecha_previa != revision_actual:
+        avisar(revision_actual, {k: (v["cambios"]["salen"], v["cambios"]["entran"], v["cartera"]["tickers"]) for k, v in variantes.items()})
 
 
 CEDEARS_OK = []
