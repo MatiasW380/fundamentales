@@ -161,6 +161,16 @@ h1{font-size:clamp(34px,6vw,52px)}
 .tile .met i{display:block;font-style:normal;font-size:11px;color:var(--ink-3)}
 .ss{display:none}
 .tile{min-width:0}
+.pers{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
+.per{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px;display:flex;flex-direction:column;gap:4px}
+.per .pt{font-size:13px;font-weight:600;color:var(--ink-2)}
+.per .pv{font-family:"Bricolage Grotesque",sans-serif;font-size:30px;font-weight:700;letter-spacing:-.02em;line-height:1.1}
+.per .pv.pos{color:var(--good)} .per .pv.negt{color:var(--bad)}
+.per .ps{font-size:12.5px;color:var(--ink-2)}
+.per .pr{font-size:12px;color:var(--ink-3);margin-top:auto;padding-top:8px}
+.per.espera{background:var(--surface-2);border-style:dashed}
+.per.destacado{border-color:var(--s1)}
+@media (max-width:1000px){.pers{grid-template-columns:repeat(2,minmax(0,1fr))}.per:last-child{grid-column:1 / -1}}
 .sec-t{display:flex;align-items:baseline;gap:10px;margin:8px 2px 12px}
 .sec-t h2{font-size:20px}
 @media (max-width:640px){
@@ -220,10 +230,9 @@ h1{font-size:clamp(34px,6vw,52px)}
       <div class="resumen" id="resumen"></div>
     </div>
 
-    <div class="card">
-      <h2 style="margin-bottom:4px">Ranking de hoy</h2>
-      <p class="muted small" style="margin:0 0 12px">Así quedaría si la revisión fuera hoy. Sirve para ver qué viene; no hay que hacer nada hasta la fecha de revisión.</p>
-      <div class="tbl-wrap"><table id="tbl-cand"></table></div>
+    <div>
+      <div class="sec-t"><h2>Resultados</h2><span class="muted small">siguiendo la regla, neto de comisiones</span></div>
+      <div class="pers" id="pers"></div>
     </div>
   </section>
 
@@ -510,17 +519,21 @@ function dibujarCartera() {
     `<span><span class="v ${clsSigno(prom)}">${pct(prom, 1, true)}</span> <span class="l">cartera</span></span>` +
     `<span><span class="v ${clsSigno(C.spy_desde_eleccion)}">${pct(C.spy_desde_eleccion, 1, true)}</span> <span class="l">SPY</span></span>` +
     `<span class="l">precios al ${fechaCorta(M.precios_al)}</span>`;
-  // ranking de hoy
-  const top = lista.length;
-  $("#tbl-cand").innerHTML = `<thead><tr><th>#</th><th>Acción</th><th class="n">Subió 12 meses</th><th class="n hs">Precio / ganancias</th><th></th></tr></thead><tbody>` +
-    M.candidatas.map((c, i) => {
-      const en = lista.includes(c.ticker);
-      return `<tr class="click" data-t="${esc(c.ticker)}"><td class="n muted">${i + 1}</td>` +
-        `<td><span class="tk">${esc(c.ticker)}</span> <span class="name hs">${esc(nombre(c.ticker))}</span></td>` +
-        `<td class="n ${clsSigno(c.momentum)}">${pct(c.momentum, 0, true)}</td><td class="n hs">${pe(c.ticker)}</td>` +
-        `<td>${en ? (i < top ? '<span class="chip tag">Sigue</span>' : '<span class="chip out">Saldría</span>') : (i < top ? '<span class="chip ok">Entraría</span>' : "")}</td></tr>`;
-    }).join("") + "</tbody>";
-  $("#tbl-cand").querySelectorAll("tr.click").forEach(tr => tr.onclick = () => irEmpresa(tr.dataset.t));
+  // resultados por período
+  const P = v.periodos || [];
+  const rango = p => p.clave === "mes" ? MES_N[+p.mes.slice(5) - 1].replace(/^./, c => c.toUpperCase()) + " " + p.mes.slice(0, 4)
+    : p.clave === "inicio" ? `desde el ${fechaMed(p.desde)}` : p.clave === "anio" ? `1 ene ${p.hasta.slice(0, 4)} → hoy` : `${fechaMed(p.desde)} → hoy`;
+  $("#pers").innerHTML = P.map(p => {
+    if (p.clave === "inicio" && !p.empezo) {
+      return `<div class="per espera"><div class="pt">${esc(p.titulo)}</div><div class="pv muted">—</div>
+        <div class="ps">Empieza el ${fechaMed(p.desde)}, con la próxima revisión</div></div>`;
+    }
+    const dif = p.cartera != null && p.spy != null ? p.cartera - p.spy : null;
+    return `<div class="per${p.clave === "inicio" ? " destacado" : ""}"><div class="pt">${esc(p.titulo)}</div>
+      <div class="pv ${clsSigno(p.cartera)}">${pct(p.cartera, 1, true)}</div>
+      <div class="ps">SPY ${pct(p.spy, 1, true)}${dif != null ? ` · <span class="${clsSigno(dif)}">${dif >= 0 ? "le gana" : "pierde"} por ${num(Math.abs(dif) * 100, 1)} pts</span>` : ""}</div>
+      <div class="pr">${rango(p)}</div></div>`;
+  }).join("");
 }
 
 // ---------------- historia ----------------

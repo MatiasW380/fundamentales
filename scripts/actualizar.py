@@ -32,6 +32,7 @@ MESES = list(CFG["meses_revision"])
 COSTO = float(CFG["costo_lado"])
 INICIO = pd.Timestamp(CFG["inicio"])
 N_CAND = int(CFG.get("candidatas", 25))
+INICIO_REAL = CFG.get("inicio_real")          # fecha en que empezás a seguir la cartera con plata real
 CEDEARS = list(dict.fromkeys(CFG["cedears"]))
 SEC_UA = os.environ.get("SEC_USER_AGENT", "").strip()
 GH_TOKEN = os.environ.get("GITHUB_TOKEN", "").strip()
@@ -95,7 +96,8 @@ def yahoo_mensual(t, intentos=3):
                     s = d.resample("ME").last()
                 except ValueError:
                     s = d.resample("M").last()
-                return {"serie": s.dropna(), "precio": meta.get("regularMarketPrice"), "ultimo_dia": d.index[-1]}
+                return {"serie": s.dropna(), "precio": meta.get("regularMarketPrice"), "ultimo_dia": d.index[-1],
+                        "diario": d[d.index >= d.index[-1] - pd.Timedelta(days=900)]}
             ultimo = r.status_code
             if r.status_code == 404:
                 return None
@@ -155,6 +157,63 @@ def simular(A, completos, TOP):
                       "spy": ret.loc[d, "SPY"], "universo": univ.dropna().mean()})
     S = pd.DataFrame(filas).set_index("fecha").dropna(subset=["spy"])
     return S, historial, mom
+
+
+def valor_diario(Dd, historial, desde):
+    """Valor diario de la cartera (base 1) comprando en partes iguales al cierre de cada revisión y sin tocar
+    hasta la siguiente; cobra comisiones en cada cambio. Arranca en la última revisión anterior a `desde`."""
+    dias = Dd.index
+    def dia_habil(fecha):                       # último día con precios <= fecha de la revisión
+        i = dias.searchsorted(pd.Timestamp(fecha), side="right") - 1
+        return dias[i] if i >= 0 else None
+    revs = [h for h in historial if dia_habil(h["fecha"]) is not None]
+    previas = [h for h in revs if pd.Timestamp(h["fecha"]) <= desde]
+    revs = revs[revs.index(previas[-1]):] if previas else revs
+    if not revs:
+        return None
+    valor, partes, cartera = 1.0, [], []
+    for k, h in enumerate(revs):
+        d0 = dia_habil(h["fecha"])
+        d1 = dia_habil(revs[k + 1]["fecha"]) if k + 1 < len(revs) else dias[-1]
+        nueva = [t for t in h["tickers"] if t in Dd.columns and pd.notna(Dd.at[d0, t])]
+        if cartera:
+            w0 = {t: 1 / len(cartera) for t in cartera}
+            w1 = {t: 1 / len(nueva) for t in nueva}
+            valor *= 1 - sum(abs(w1.get(t, 0) - w0.get(t, 0)) for t in set(w0) | set(w1)) * COSTO
+        tramo = Dd.loc[d0:d1, nueva].ffill()
+        v = valor * (tramo / tramo.iloc[0]).mean(axis=1)
+        partes.append(v if not partes else v.iloc[1:])
+        valor, cartera = float(v.iloc[-1]), nueva
+    return pd.concat(partes)
+
+
+def periodos(v, spy, hoy):
+    """Resultados de la cartera y de SPY en las ventanas que se muestran."""
+    def en(serie, fecha):
+        i = serie.index.searchsorted(pd.Timestamp(fecha), side="right") - 1
+        return float(serie.iloc[i]) if i >= 0 else None
+    def ret(serie, a, b):
+        x, y = en(serie, a), en(serie, b)
+        return r4(y / x - 1) if x and y and serie.index[0] <= pd.Timestamp(a) else None
+    fin_mes_ant = (hoy.replace(day=1) - pd.Timedelta(days=1))
+    ini_mes_ant = fin_mes_ant.replace(day=1) - pd.Timedelta(days=1)
+    fin_anio_ant = pd.Timestamp(hoy.year - 1, 12, 31)
+    out = [
+        {"clave": "30d", "titulo": "Últimos 30 días", "desde": f"{hoy - pd.Timedelta(days=30):%Y-%m-%d}", "hasta": f"{hoy:%Y-%m-%d}",
+         "cartera": ret(v, hoy - pd.Timedelta(days=30), hoy), "spy": ret(spy, hoy - pd.Timedelta(days=30), hoy)},
+        {"clave": "mes", "titulo": "Último mes", "mes": f"{fin_mes_ant:%Y-%m}", "desde": f"{ini_mes_ant:%Y-%m-%d}", "hasta": f"{fin_mes_ant:%Y-%m-%d}",
+         "cartera": ret(v, ini_mes_ant, fin_mes_ant), "spy": ret(spy, ini_mes_ant, fin_mes_ant)},
+        {"clave": "365d", "titulo": "Últimos 365 días", "desde": f"{hoy - pd.Timedelta(days=365):%Y-%m-%d}", "hasta": f"{hoy:%Y-%m-%d}",
+         "cartera": ret(v, hoy - pd.Timedelta(days=365), hoy), "spy": ret(spy, hoy - pd.Timedelta(days=365), hoy)},
+        {"clave": "anio", "titulo": f"En {hoy.year}", "desde": f"{fin_anio_ant:%Y-%m-%d}", "hasta": f"{hoy:%Y-%m-%d}",
+         "cartera": ret(v, fin_anio_ant, hoy), "spy": ret(spy, fin_anio_ant, hoy)},
+    ]
+    if INICIO_REAL:
+        ini = pd.Timestamp(INICIO_REAL)
+        empezo = hoy > ini
+        out.append({"clave": "inicio", "titulo": "Desde el inicio", "desde": INICIO_REAL, "hasta": f"{hoy:%Y-%m-%d}", "empezo": bool(empezo),
+                    "cartera": ret(v, ini, hoy) if empezo else None, "spy": ret(spy, ini, hoy) if empezo else None})
+    return out
 
 
 def anual(r):
@@ -307,6 +366,9 @@ def main():
     completos = [d for d in A.index if ult_dia >= ultimo_habil(d)]
     variantes, revision_actual = {}, None
     ult = A.ffill().iloc[-1]
+    Dd = pd.DataFrame({t: info[t]["diario"] for t in info}).sort_index()
+    Dd = Dd[Dd.index <= ult_dia]
+    spy_d = Dd["SPY"].ffill().dropna()
     for top in TOPS:
         S, historial, mom = simular(A, completos, top)
         if not historial:
@@ -327,7 +389,9 @@ def main():
         desde_ingreso = {t: r4(ult[t] / A.at[pd.Timestamp(f), t] - 1) for t, f in ingreso.items() if t in A.columns}
         ult5 = S.index >= S.index[-1] - pd.DateOffset(years=5)
         revision_actual = vigente["fecha"]
+        v_d = valor_diario(Dd, historial, ult_dia - pd.Timedelta(days=400))
         variantes[str(top)] = {
+            "periodos": periodos(v_d, spy_d, ult_dia) if v_d is not None else [],
             "cartera": {"fecha": vigente["fecha"], "tickers": vigente["tickers"], "momentum_eleccion": vigente["momentum"],
                         "desde_eleccion": desde, "ingreso": ingreso, "desde_ingreso": desde_ingreso, "spy_desde_eleccion": r4(ult["SPY"] / A.at[f0, "SPY"] - 1)},
             "cambios": {"desde": anterior["fecha"], "salen": [t for t in anterior["tickers"] if t not in vigente["tickers"]],
