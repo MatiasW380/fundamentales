@@ -1,0 +1,586 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fundamentales</title>
+<meta name="description" content="Laboratorio de análisis fundamental de CEDEARs: balances de la SEC, estrategias probadas y ranking de hoy.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  color-scheme:light;
+  --bg:#f6f4ee; --surface:#fcfcfb; --surface-2:#efece3; --line:#dedad0; --grid:#e9e6dd;
+  --ink:#0b0b0b; --ink-2:#52514e; --ink-3:#7c7a74;
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --neg:#e34948;
+  --good:#0f7a3d; --good-bg:#e3f2e8; --warn:#9a6200; --warn-bg:#fbf0d9; --bad:#b3261e; --bad-bg:#fbe6e4;
+  --band:rgba(42,120,214,.07); --bar:#2a78d6; --bar-bg:#e4ecf7;
+  --radius:14px;
+}
+@media (prefers-color-scheme:dark){
+  :root:where(:not([data-theme="light"])){
+    color-scheme:dark;
+    --bg:#121211; --surface:#1a1a19; --surface-2:#232321; --line:#33322f; --grid:#2a2a27;
+    --ink:#f0efec; --ink-2:#c3c2b7; --ink-3:#8f8d86;
+    --s1:#3987e5; --s2:#d95926; --s3:#199e70; --neg:#e66767;
+    --good:#6fd29a; --good-bg:#16301f; --warn:#f0c060; --warn-bg:#33280f; --bad:#ff8a80; --bad-bg:#3a1a18;
+    --band:rgba(57,135,229,.10); --bar:#3987e5; --bar-bg:#1f2a3a;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#121211; --surface:#1a1a19; --surface-2:#232321; --line:#33322f; --grid:#2a2a27;
+  --ink:#f0efec; --ink-2:#c3c2b7; --ink-3:#8f8d86;
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --neg:#e66767;
+  --good:#6fd29a; --good-bg:#16301f; --warn:#f0c060; --warn-bg:#33280f; --bad:#ff8a80; --bad-bg:#3a1a18;
+  --band:rgba(57,135,229,.10); --bar:#3987e5; --bar-bg:#1f2a3a;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:15px/1.5 "Instrument Sans",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1180px;margin:0 auto;padding:28px 16px 64px}
+h1,h2,h3{font-family:"Bricolage Grotesque",system-ui,sans-serif;letter-spacing:-.02em;margin:0}
+h1{font-size:clamp(30px,5vw,44px);font-weight:700;line-height:1.05}
+h2{font-size:22px;font-weight:700}
+h3{font-size:15px;font-weight:600;font-family:"Instrument Sans",sans-serif;letter-spacing:0}
+.mono,td.n,.n{font-family:"JetBrains Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:12.5px}
+header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:22px}
+.sub{color:var(--ink-2);margin-top:6px;max-width:620px}
+.top-actions{display:flex;gap:8px;align-items:center}
+nav{display:flex;gap:4px;background:var(--surface-2);border-radius:999px;padding:4px;margin-bottom:22px;width:max-content;max-width:100%;overflow-x:auto}
+nav button{border:0;background:transparent;color:var(--ink-2);font:inherit;font-weight:500;padding:8px 16px;border-radius:999px;cursor:pointer;white-space:nowrap}
+nav button[aria-selected="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.icon-btn{border:1px solid var(--line);background:var(--surface);color:var(--ink-2);border-radius:999px;padding:7px 12px;font:inherit;font-size:13px;cursor:pointer}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:20px}
+.grid{display:grid;gap:16px}
+.g2{grid-template-columns:repeat(auto-fit,minmax(320px,1fr))}
+.g3{grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
+.stack>*+*{margin-top:16px}
+.lead{font-size:18px;line-height:1.45;max-width:820px}
+.lead b{font-weight:600}
+.muted{color:var(--ink-2)}
+.small{font-size:13px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.spacer{flex:1}
+select,input[type=search]{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 10px;max-width:100%}
+label.chk{display:flex;gap:6px;align-items:center;font-size:14px;color:var(--ink-2);cursor:pointer}
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.chip.ok{background:var(--good-bg);color:var(--good)}
+.chip.warn{background:var(--warn-bg);color:var(--warn)}
+.chip.no{background:var(--surface-2);color:var(--ink-2)}
+.chip.tag{background:var(--surface-2);color:var(--ink-2);font-weight:500}
+.tbl-wrap{overflow-x:auto;margin:0 -20px;padding:0 20px}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th{font-size:12px;font-weight:600;color:var(--ink-3);text-align:left;padding:8px 8px;border-bottom:1px solid var(--line);user-select:none;vertical-align:bottom;line-height:1.25}
+th.n,td.n{text-align:right}
+th.sort{cursor:pointer}
+th.sort:hover{color:var(--ink)}
+th .arrow{opacity:.7}
+td{padding:9px 8px;border-bottom:1px solid var(--grid);vertical-align:middle;white-space:nowrap}
+tr.click{cursor:pointer}
+tr.click:hover td{background:var(--surface-2)}
+tr.sel td{background:var(--band)}
+.pos{color:var(--good)} .negt{color:var(--bad)}
+.pbar{display:inline-flex;align-items:center;gap:8px}
+.pbar i{display:block;width:64px;height:6px;border-radius:3px;background:var(--bar-bg);position:relative;overflow:hidden}
+.pbar i b{position:absolute;left:0;top:0;bottom:0;border-radius:3px;background:var(--bar)}
+.tk{font-weight:600}
+.name{color:var(--ink-2);max-width:220px;overflow:hidden;text-overflow:ellipsis;display:inline-block;vertical-align:bottom}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px}
+.kpi{background:var(--surface-2);border-radius:12px;padding:12px 14px}
+.kpi .l{font-size:12px;color:var(--ink-2)}
+.kpi .v{font-family:"Bricolage Grotesque",sans-serif;font-size:24px;font-weight:700;letter-spacing:-.02em}
+.kpi .h{font-size:12px;color:var(--ink-3)}
+.chart{position:relative;width:100%}
+.chart svg{display:block;width:100%;height:auto;overflow:visible}
+.chart text{font-family:"Instrument Sans",sans-serif;font-size:11px;fill:var(--ink-3)}
+.chart .lbl{font-size:12px;font-weight:600;fill:var(--ink)}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:13px;color:var(--ink-2);margin:4px 0 8px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:14px;height:3px;border-radius:2px;display:inline-block}
+.tip{position:absolute;pointer-events:none;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:12px;box-shadow:0 6px 20px rgba(0,0,0,.12);min-width:150px;z-index:5;display:none}
+.tip .t{font-weight:600;margin-bottom:4px}
+.tip .r{display:flex;justify-content:space-between;gap:14px;color:var(--ink-2)}
+.tip .r b{color:var(--ink);font-family:"JetBrains Mono",monospace;font-weight:500}
+.tip .sw{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:6px}
+.empty{text-align:center;padding:60px 20px}
+.empty h2{margin-bottom:8px}
+.note{font-size:13px;color:var(--ink-2);border-left:3px solid var(--line);padding:2px 0 2px 12px}
+.picks{display:flex;flex-wrap:wrap;gap:6px}
+.picks button{border:1px solid var(--line);background:var(--surface-2);color:var(--ink);font:inherit;font-size:13px;font-weight:600;padding:4px 10px;border-radius:8px;cursor:pointer}
+.picks button:hover{border-color:var(--ink-3)}
+[hidden]{display:none!important}
+@media (max-width:640px){.card{padding:16px}.tbl-wrap{margin:0 -16px;padding:0 16px}.lead{font-size:16px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Fundamentales</h1>
+      <div class="sub">Balances de la SEC de las empresas con CEDEAR, estrategias probadas sin mirar el futuro y el ranking de hoy.</div>
+    </div>
+    <div class="top-actions">
+      <span class="muted small" id="generado"></span>
+      <button class="icon-btn" id="tema" title="Cambiar tema">◐ Tema</button>
+    </div>
+  </header>
+
+  <nav role="tablist">
+    <button role="tab" data-tab="estrategias" aria-selected="true">Estrategias</button>
+    <button role="tab" data-tab="ranking" aria-selected="false">Ranking de hoy</button>
+    <button role="tab" data-tab="empresa" aria-selected="false">Empresa</button>
+  </nav>
+
+  <div id="vacio" class="card empty" hidden>
+    <h2>Todavía no hay resultados</h2>
+    <p class="muted">Corré las cuatro celdas del laboratorio en Colab. La última sube los datos a este repo y Vercel actualiza la página sola.</p>
+  </div>
+
+  <!-- ===================== ESTRATEGIAS ===================== -->
+  <section id="tab-estrategias" class="stack" hidden>
+    <div class="card">
+      <p class="lead" id="resumen"></p>
+    </div>
+    <div class="card">
+      <div class="row" style="margin-bottom:6px">
+        <h2 id="titulo-curva">Cuánto se hacía US$ 1</h2>
+        <span class="spacer"></span>
+        <select id="sel-estrategia" aria-label="Estrategia"></select>
+      </div>
+      <div class="muted small" id="sub-curva"></div>
+      <div class="legend" id="leg-curva"></div>
+      <div class="chart" id="ch-curva"></div>
+      <div class="note" style="margin-top:12px">La franja sombreada es el período reservado: las estrategias se aprueban o no sin mirarla, y recién después se confirma ahí.</div>
+    </div>
+    <div class="card">
+      <h2 style="margin-bottom:4px">Todas las variantes</h2>
+      <p class="muted small" style="margin:0 0 12px" id="sub-tabla"></p>
+      <div class="tbl-wrap"><table id="tbl-estr"></table></div>
+    </div>
+    <div class="card">
+      <h3 style="margin-bottom:10px" id="titulo-cartera">Cartera actual de la estrategia</h3>
+      <div class="picks" id="cartera"></div>
+    </div>
+  </section>
+
+  <!-- ===================== RANKING ===================== -->
+  <section id="tab-ranking" class="stack" hidden>
+    <div class="card">
+      <div class="row" style="margin-bottom:14px">
+        <input type="search" id="buscar" placeholder="Buscar ticker o nombre" aria-label="Buscar">
+        <select id="orden" aria-label="Ordenar por">
+          <option value="vc">Valor + calidad</option>
+          <option value="valor">Valor</option>
+          <option value="calidad">Calidad</option>
+          <option value="fscore">Piotroski</option>
+          <option value="sue">Sorpresa de ganancias</option>
+          <option value="momentum">Momentum 12-1</option>
+        </select>
+        <select id="filtro-estr" aria-label="Filtrar por estrategia"><option value="">Todas las empresas</option></select>
+        <span class="spacer"></span>
+        <span class="muted small" id="cuenta"></span>
+      </div>
+      <div class="tbl-wrap"><table id="tbl-rank"></table></div>
+      <p class="note" style="margin-top:14px">Valor y calidad son percentiles (0 a 100) dentro de las empresas de la lista: 100 = la más barata o la de mejor calidad. P/G = precio sobre ganancias de los últimos 12 meses. Es un ranking, no una recomendación: mirá primero si la estrategia fue aprobada.</p>
+    </div>
+  </section>
+
+  <!-- ===================== EMPRESA ===================== -->
+  <section id="tab-empresa" class="stack" hidden>
+    <div class="card">
+      <div class="row">
+        <div>
+          <h2 id="emp-titulo">—</h2>
+          <div class="muted small" id="emp-sub"></div>
+        </div>
+        <span class="spacer"></span>
+        <select id="sel-empresa" aria-label="Empresa"></select>
+      </div>
+      <div class="kpis" id="emp-kpis" style="margin-top:16px"></div>
+      <div class="row" style="margin-top:12px" id="emp-en"></div>
+    </div>
+    <div class="grid g3">
+      <div class="card"><h3>Ventas por trimestre</h3><div class="chart" id="ch-ventas"></div></div>
+      <div class="card"><h3>Ganancia neta por trimestre</h3><div class="chart" id="ch-neto"></div></div>
+      <div class="card"><h3>Flujo de caja libre por trimestre</h3><div class="chart" id="ch-fcf"></div></div>
+    </div>
+    <div class="grid g2">
+      <div class="card"><h3>Márgenes</h3><div class="legend" id="leg-margen"></div><div class="chart" id="ch-margen"></div></div>
+      <div class="card"><h3>Percentil de valor y calidad en el tiempo</h3><div class="legend" id="leg-hist"></div><div class="chart" id="ch-hist"></div></div>
+    </div>
+    <div class="card">
+      <h3 style="margin-bottom:8px">Balance</h3>
+      <div class="tbl-wrap"><table id="tbl-bal"></table></div>
+    </div>
+  </section>
+</div>
+
+<script>
+"use strict";
+const $ = s => document.querySelector(s);
+const D = {estr: null, rank: null, emp: null};
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+
+// ---------------- formato ----------------
+const nf = (d) => new Intl.NumberFormat("es-AR", {minimumFractionDigits: d, maximumFractionDigits: d});
+const num = (v, d = 1) => v == null || !isFinite(v) ? "—" : nf(d).format(v);
+const pct = (v, d = 1, signo = false) => v == null || !isFinite(v) ? "—" : (signo && v > 0 ? "+" : "") + nf(d).format(v * 100) + "%";
+const usd = (v) => {
+  if (v == null || !isFinite(v)) return "—";
+  const a = Math.abs(v), s = v < 0 ? "−" : "";
+  if (a >= 1e9) return s + "US$ " + nf(1).format(a / 1e9) + " mil M";
+  if (a >= 1e6) return s + "US$ " + nf(0).format(a / 1e6) + " M";
+  return s + "US$ " + nf(0).format(a);
+};
+const corto = (v) => {
+  if (v == null || !isFinite(v)) return "—";
+  const a = Math.abs(v), s = v < 0 ? "−" : "";
+  if (a >= 1e9) return s + nf(1).format(a / 1e9) + " mil M";
+  if (a >= 1e6) return s + nf(0).format(a / 1e6) + " M";
+  return s + nf(0).format(a);
+};
+const clsSigno = v => v == null ? "" : v > 0 ? "pos" : v < 0 ? "negt" : "";
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
+const mesTxt = (ym) => { const [y, m] = ym.split("-"); return ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"][+m - 1] + " " + y; };
+const trimTxt = (f) => { const d = new Date(f + "T00:00:00"); return "T" + (Math.floor(d.getMonth() / 3) + 1) + " " + String(d.getFullYear()).slice(2); };
+
+// ---------------- gráficos (SVG propio) ----------------
+function tooltip(host) {
+  let t = host.querySelector(".tip");
+  if (!t) { t = document.createElement("div"); t.className = "tip"; host.appendChild(t); }
+  return t;
+}
+function ticksLin(min, max, n = 5) {
+  const span = max - min || 1, paso0 = span / n, mag = Math.pow(10, Math.floor(Math.log10(paso0)));
+  const paso = [1, 2, 2.5, 5, 10].map(x => x * mag).find(x => span / x <= n) || mag * 10;
+  const out = []; for (let k = Math.ceil(min / paso); k * paso <= max + paso * 1e-6 && out.length < 12; k++) out.push(+(k * paso).toPrecision(12));
+  return out;
+}
+function ticksLog(min, max) {
+  const base = [1, 2, 5], out = [];
+  for (let e = Math.floor(Math.log10(min)) - 1; e <= Math.ceil(Math.log10(max)); e++)
+    for (const b of base) { const v = b * Math.pow(10, e); if (v >= min * 0.98 && v <= max * 1.02) out.push(v); }
+  return out.length >= 2 ? out : [min, max];
+}
+
+function lineChart(host, o) {
+  // o: {x:[labels], xFmt, series:[{name,values,color,width}], log, band:{from,to,label}, yFmt, h}
+  const W = host.clientWidth || 600, H = o.h || 320;
+  o = {...o, endLabels: o.endLabels && W > 560};                      // en el celular alcanza con la leyenda
+  const m = {l: 52, r: o.endLabels ? 96 : 14, t: 14, b: 28};
+  const iw = W - m.l - m.r, ih = H - m.t - m.b, n = o.x.length;
+  const vals = o.series.flatMap(s => s.values).filter(v => v != null && isFinite(v) && (!o.log || v > 0));
+  if (!vals.length) { host.innerHTML = '<p class="muted small">Sin datos.</p>'; return; }
+  let lo = o.yMin ?? Math.min(...vals), hi = o.yMax ?? Math.max(...vals);
+  if (!o.log && o.yMin == null) {
+    const minimo = Math.max(Math.abs(hi), Math.abs(lo)) * 0.2 || 1;      // series casi planas: no inventar escala
+    if (hi - lo < minimo) { const c = (hi + lo) / 2; lo = c - minimo / 2; hi = c + minimo / 2; }
+    const pad = (hi - lo) * 0.08; lo -= pad; hi += pad;
+  }
+  const X = i => m.l + (n <= 1 ? 0 : i / (n - 1) * iw);
+  const Y = o.log ? v => m.t + ih - (Math.log(v) - Math.log(lo)) / (Math.log(hi) - Math.log(lo) || 1) * ih
+                  : v => m.t + ih - (v - lo) / (hi - lo || 1) * ih;
+  const ticks = o.log ? ticksLog(lo, hi) : ticksLin(lo, hi);
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(o.aria || "")}">`;
+  if (o.band) {
+    const a = o.x.indexOf(o.band.from), b = o.band.to ? o.x.indexOf(o.band.to) : n - 1;
+    if (a >= 0) {
+      s += `<rect x="${X(a)}" y="${m.t}" width="${Math.max(0, X(b) - X(a))}" height="${ih}" fill="var(--band)"/>`;
+      s += `<text x="${X(a) + 6}" y="${m.t + 13}" style="font-weight:600">${esc(o.band.label)}</text>`;
+    }
+  }
+  for (const t of ticks) {
+    const y = Y(t);
+    s += `<line x1="${m.l}" x2="${m.l + iw}" y1="${y}" y2="${y}" stroke="var(--grid)" stroke-width="1"/>`;
+    s += `<text x="${m.l - 8}" y="${y + 4}" text-anchor="end">${esc((o.yFmt || num)(t))}</text>`;
+  }
+  if (o.zero && lo < 0 && hi > 0) s += `<line x1="${m.l}" x2="${m.l + iw}" y1="${Y(0)}" y2="${Y(0)}" stroke="var(--ink-3)" stroke-width="1"/>`;
+  const cada = Math.max(1, Math.ceil(n / Math.max(2, Math.floor(iw / 80))));
+  for (let i = 0; i < n; i += cada) s += `<text x="${X(i)}" y="${H - 8}" text-anchor="middle">${esc((o.xFmt || (v => v))(o.x[i]))}</text>`;
+  const ends = [];
+  o.series.forEach(se => {
+    let d = "", pen = false;
+    se.values.forEach((v, i) => {
+      if (v == null || !isFinite(v) || (o.log && v <= 0)) { pen = false; return; }
+      d += (pen ? "L" : "M") + X(i).toFixed(1) + " " + Y(v).toFixed(1) + " "; pen = true;
+    });
+    s += `<path d="${d}" fill="none" stroke="${se.color}" stroke-width="${se.width || 2}" stroke-linejoin="round" stroke-linecap="round"/>`;
+    const li = se.values.map((v, i) => v != null && isFinite(v) ? i : -1).filter(i => i >= 0).pop();
+    if (li != null && o.endLabels) ends.push({y: Y(se.values[li]), x: X(li), name: se.name, color: se.color, v: se.values[li]});
+  });
+  // etiquetas al final de cada línea, sin superponerse
+  ends.sort((a, b) => a.y - b.y);
+  for (let i = 1; i < ends.length; i++) if (ends[i].y - ends[i - 1].y < 15) ends[i].y = ends[i - 1].y + 15;
+  for (const e of ends) {
+    s += `<circle cx="${e.x}" cy="${e.y}" r="4" fill="${e.color}" stroke="var(--surface)" stroke-width="2"/>`;
+    s += `<text class="lbl" x="${e.x + 8}" y="${e.y + 4}">${esc(e.name)}</text>`;
+  }
+  s += `<line class="cross" x1="0" x2="0" y1="${m.t}" y2="${m.t + ih}" stroke="var(--ink-3)" stroke-width="1" stroke-dasharray="3 3" visibility="hidden"/>`;
+  s += `<g class="dots"></g><rect x="${m.l}" y="${m.t}" width="${iw}" height="${ih}" fill="transparent" class="hit"/></svg>`;
+  host.innerHTML = s;
+  const svg = host.querySelector("svg"), tip = tooltip(host), cross = svg.querySelector(".cross"), dots = svg.querySelector(".dots");
+  const mover = (ev) => {
+    const r = svg.getBoundingClientRect(), px = (ev.clientX - r.left) * W / r.width;
+    const i = Math.max(0, Math.min(n - 1, Math.round((px - m.l) / iw * (n - 1))));
+    cross.setAttribute("x1", X(i)); cross.setAttribute("x2", X(i)); cross.setAttribute("visibility", "visible");
+    dots.innerHTML = o.series.map(se => se.values[i] == null ? "" : `<circle cx="${X(i)}" cy="${Y(se.values[i])}" r="4" fill="${se.color}" stroke="var(--surface)" stroke-width="2"/>`).join("");
+    tip.innerHTML = `<div class="t">${esc((o.xFmt || (v => v))(o.x[i]))}</div>` + o.series.map(se =>
+      `<div class="r"><span><i class="sw" style="background:${se.color}"></i>${esc(se.name)}</span><b>${esc((o.tipFmt || o.yFmt || num)(se.values[i]))}</b></div>`).join("");
+    tip.style.display = "block";
+    const tx = X(i) * r.width / W, w = tip.offsetWidth;
+    tip.style.left = (tx + 14 + w > r.width ? tx - w - 14 : tx + 14) + "px";
+    tip.style.top = "10px";
+  };
+  const salir = () => { tip.style.display = "none"; cross.setAttribute("visibility", "hidden"); dots.innerHTML = ""; };
+  svg.querySelector(".hit").addEventListener("pointermove", mover);
+  svg.querySelector(".hit").addEventListener("pointerleave", salir);
+}
+
+function barChart(host, o) {
+  // o: {x:[labels], values:[], xFmt, yFmt}
+  const W = host.clientWidth || 360, H = o.h || 190, m = {l: 50, r: 6, t: 10, b: 24};
+  const iw = W - m.l - m.r, ih = H - m.t - m.b, n = o.x.length;
+  const v = o.values.filter(x => x != null && isFinite(x));
+  if (!v.length) { host.innerHTML = '<p class="muted small">La empresa no informa este dato.</p>'; return; }
+  let lo = Math.min(0, ...v), hi = Math.max(0, ...v);
+  const ticks = ticksLin(lo, hi, 4); lo = Math.min(lo, ticks[0]); hi = Math.max(hi, ticks[ticks.length - 1]);
+  const Y = x => m.t + ih - (x - lo) / (hi - lo || 1) * ih, bw = iw / n, gap = Math.max(2, bw * 0.28);
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(o.aria || "")}">`;
+  for (const t of ticks) {
+    s += `<line x1="${m.l}" x2="${m.l + iw}" y1="${Y(t)}" y2="${Y(t)}" stroke="${t === 0 ? "var(--ink-3)" : "var(--grid)"}" stroke-width="1"/>`;
+    s += `<text x="${m.l - 6}" y="${Y(t) + 4}" text-anchor="end">${esc(corto(t))}</text>`;
+  }
+  o.values.forEach((val, i) => {
+    if (val == null || !isFinite(val)) return;
+    const x = m.l + i * bw + gap / 2, w = bw - gap, y0 = Y(0), y1 = Y(val), h = Math.abs(y1 - y0), r = Math.min(4, w / 2, h);
+    const col = val < 0 ? "var(--neg)" : "var(--bar)";
+    // extremo redondeado lejos de la base
+    const p = val >= 0
+      ? `M${x} ${y0}V${y1 + r}Q${x} ${y1} ${x + r} ${y1}H${x + w - r}Q${x + w} ${y1} ${x + w} ${y1 + r}V${y0}Z`
+      : `M${x} ${y0}V${y1 - r}Q${x} ${y1} ${x + r} ${y1}H${x + w - r}Q${x + w} ${y1} ${x + w} ${y1 - r}V${y0}Z`;
+    s += `<path d="${p}" fill="${col}"/>`;
+    s += `<rect x="${m.l + i * bw}" y="${m.t}" width="${bw}" height="${ih}" fill="transparent" data-i="${i}" class="hit"/>`;
+  });
+  const cada = Math.max(1, Math.ceil(n / Math.max(2, Math.floor(iw / 44))));
+  for (let i = n - 1; i >= 0; i -= cada) s += `<text x="${m.l + i * bw + bw / 2}" y="${H - 6}" text-anchor="middle">${esc((o.xFmt || (x => x))(o.x[i]))}</text>`;
+  s += "</svg>";
+  host.innerHTML = s;
+  const svg = host.querySelector("svg"), tip = tooltip(host);
+  svg.querySelectorAll(".hit").forEach(el => {
+    el.addEventListener("pointerenter", () => {
+      const i = +el.dataset.i, r = svg.getBoundingClientRect();
+      tip.innerHTML = `<div class="t">${esc((o.xFmt || (x => x))(o.x[i]))}</div><div class="r"><span>${esc(o.nombre || "")}</span><b>${esc(usd(o.values[i]))}</b></div>`;
+      tip.style.display = "block";
+      const tx = (m.l + i * bw + bw / 2) * r.width / W, w = tip.offsetWidth;
+      tip.style.left = Math.max(0, Math.min(r.width - w, tx - w / 2)) + "px"; tip.style.top = "-6px";
+      el.setAttribute("fill", "rgba(127,127,127,.08)");
+    });
+    el.addEventListener("pointerleave", () => { tip.style.display = "none"; el.setAttribute("fill", "transparent"); });
+  });
+}
+
+function leyenda(el, series) {
+  el.innerHTML = series.map(s => `<span><i style="background:${s.color}"></i>${esc(s.name)}</span>`).join("");
+}
+
+// ---------------- pestañas ----------------
+let tabActual = "estrategias";
+function mostrar(tab) {
+  tabActual = tab;
+  document.querySelectorAll("nav button").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === tab));
+  for (const t of ["estrategias", "ranking", "empresa"]) $("#tab-" + t).hidden = t !== tab || !D.estr;
+  try { localStorage.setItem("fund_tab", tab); } catch (e) {}
+  dibujar();
+}
+document.querySelectorAll("nav button").forEach(b => b.addEventListener("click", () => mostrar(b.dataset.tab)));
+
+$("#tema").addEventListener("click", () => {
+  const actual = document.documentElement.dataset.theme || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+  const nuevo = actual === "dark" ? "light" : "dark";
+  document.documentElement.dataset.theme = nuevo;
+  try { localStorage.setItem("fund_tema", nuevo); } catch (e) {}
+  dibujar();
+});
+try { const t = localStorage.getItem("fund_tema"); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
+
+// ---------------- estrategias ----------------
+let claveSel = null;
+function veredictoChip(v) {
+  if (v === "aprobada y confirmada") return '<span class="chip ok">✓ Aprobada y confirmada</span>';
+  if (v === "aprobada pero falla en reserva") return '<span class="chip warn">! Falla en reserva</span>';
+  return '<span class="chip no">✕ No aprobada</span>';
+}
+function initEstrategias() {
+  const E = D.estr, tab = E.tabla;
+  const aprob = tab.filter(f => f.aprobada), conf = tab.filter(f => f.veredicto === "aprobada y confirmada");
+  const ra = E.referencias_anual;
+  $("#resumen").innerHTML =
+    `De <b>${tab.length} variantes</b> probadas, <b>${aprob.length}</b> le ganaron a SPY y al universo en las dos mitades del período de desarrollo` +
+    (aprob.length ? ` y <b>${conf.length}</b> lo confirmaron en el período reservado.` : `, así que el período reservado no se usó para decidir.`) +
+    ` En desarrollo, SPY rindió <b>${pct(ra.dev.SPY)}</b> anual y el universo igual ponderado <b>${pct(ra.dev.Universo)}</b>.` +
+    ` <span class="muted">Costo por operación: ${pct(E.parametros.costo_lado, 2)} por lado.</span>`;
+  const sel = $("#sel-estrategia");
+  sel.innerHTML = tab.map(f => `<option value="${esc(f.clave)}">${esc(f.clave)}</option>`).join("");
+  const mejor = [...tab].sort((a, b) => (b.aprobada - a.aprobada) || ((b.t_univ ?? -9) - (a.t_univ ?? -9)))[0];
+  claveSel = claveSel || mejor.clave;
+  sel.value = claveSel;
+  sel.onchange = () => { claveSel = sel.value; dibujar(); };
+  const p = E.periodos;
+  $("#sub-tabla").textContent = `Desarrollo 1: ${mesTxt(p.inicio)} a ${mesTxt(p.mitad)} · Desarrollo 2: hasta ${mesTxt(p.reserva)} · Reserva: ${mesTxt(p.reserva)} a ${mesTxt(p.fin)}. Diferencias anuales, netas de costos. t: qué tan lejos del azar está la ventaja sobre el universo (se pide ${num(E.parametros.t_minimo, 1)} o más).`;
+}
+function dibujarEstrategias() {
+  const E = D.estr, f = E.tabla.find(x => x.clave === claveSel);
+  const series = [
+    {name: f.estrategia + " · top " + f.top, values: E.curvas[claveSel], color: css("--s1"), width: 2.5},
+    {name: "SPY", values: E.referencias.SPY, color: css("--s2")},
+    {name: "Universo", values: E.referencias.Universo, color: css("--s3")},
+  ];
+  leyenda($("#leg-curva"), series);
+  const fin = v => v == null ? "—" : "US$ " + num(v, 2);
+  $("#sub-curva").innerHTML = `Neto de costos, escala logarítmica. US$ 1 de ${mesTxt(E.fechas[0])} terminó en <b>${fin(series[0].values.at(-1))}</b> contra ${fin(series[1].values.at(-1))} en SPY. ${veredictoChip(f.veredicto)}`;
+  lineChart($("#ch-curva"), {x: E.fechas, xFmt: v => v.slice(0, 4), series, log: true, endLabels: true,
+    band: {from: E.periodos.reserva, label: "Reserva"}, yFmt: v => num(v, v < 10 ? 1 : 0), tipFmt: v => "US$ " + num(v, 2), h: 340,
+    aria: "Evolución de US$ 1 en la estrategia, SPY y el universo"});
+  const cols = [
+    ["Estrategia", r => `<span class="tk">${esc(r.estrategia)}</span>`],
+    ["Top", r => r.top, "n"],
+    ["Anual dev.", r => pct(r.anual_dev), "n"],
+    ["vs SPY 1", r => `<span class="${clsSigno(r.vs_spy_1)}">${pct(r.vs_spy_1, 1, true)}</span>`, "n"],
+    ["vs SPY 2", r => `<span class="${clsSigno(r.vs_spy_2)}">${pct(r.vs_spy_2, 1, true)}</span>`, "n"],
+    ["vs univ. 1", r => `<span class="${clsSigno(r.vs_univ_1)}">${pct(r.vs_univ_1, 1, true)}</span>`, "n"],
+    ["vs univ. 2", r => `<span class="${clsSigno(r.vs_univ_2)}">${pct(r.vs_univ_2, 1, true)}</span>`, "n"],
+    ["t", r => num(r.t_univ, 2), "n"],
+    ["Sharpe defl.", r => num(r.sharpe_defl, 2), "n"],
+    ["Costo/año", r => pct(r.costo_anual, 2), "n"],
+    ["Caída máx.", r => pct(r.caida_dev, 0), "n"],
+    ["Reserva", r => r.aprobada ? pct(r.anual_reserva) : '<span class="muted">sin abrir</span>', "n"],
+    ["Veredicto", r => veredictoChip(r.veredicto)],
+  ];
+  $("#tbl-estr").innerHTML = `<thead><tr>${cols.map(c => `<th class="${c[2] || ""}">${c[0]}</th>`).join("")}</tr></thead><tbody>` +
+    E.tabla.map(r => `<tr class="click ${r.clave === claveSel ? "sel" : ""}" data-k="${esc(r.clave)}">${cols.map(c => `<td class="${c[2] || ""}">${c[1](r)}</td>`).join("")}</tr>`).join("") + "</tbody>";
+  $("#tbl-estr").querySelectorAll("tr.click").forEach(tr => tr.onclick = () => { claveSel = tr.dataset.k; $("#sel-estrategia").value = claveSel; dibujar(); });
+  $("#titulo-cartera").textContent = `Cartera que tendría hoy: ${f.estrategia} · top ${f.top}`;
+  $("#cartera").innerHTML = f.cartera_actual.length ? f.cartera_actual.map(t => `<button data-t="${esc(t)}">${esc(t)}</button>`).join("")
+    : '<span class="muted small">Ninguna empresa cumple hoy.</span>';
+  $("#cartera").querySelectorAll("button").forEach(b => b.onclick = () => irEmpresa(b.dataset.t));
+}
+
+// ---------------- ranking ----------------
+let ordenCol = "vc", ordenDesc = true;
+function initRanking() {
+  const R = D.rank;
+  $("#filtro-estr").innerHTML = '<option value="">Todas las empresas</option>' +
+    Object.keys(R.elegidas).map(k => `<option value="${esc(k)}">Elegidas por ${esc(k)}</option>`).join("");
+  $("#buscar").oninput = dibujar;
+  $("#filtro-estr").onchange = dibujar;
+  $("#orden").onchange = () => { ordenCol = $("#orden").value; ordenDesc = true; dibujar(); };
+}
+function dibujarRanking() {
+  const R = D.rank, q = $("#buscar").value.trim().toLowerCase(), fe = $("#filtro-estr").value;
+  let filas = R.filas.filter(r => (!q || r.ticker.toLowerCase().includes(q) || r.nombre.toLowerCase().includes(q)) && (!fe || r.en.includes(fe)));
+  filas.sort((a, b) => {
+    const x = a[ordenCol], y = b[ordenCol];
+    if (x == null && y == null) return 0; if (x == null) return 1; if (y == null) return -1;
+    return ordenDesc ? y - x : x - y;
+  });
+  $("#cuenta").textContent = `${filas.length} empresas · datos al ${R.fecha}`;
+  const barra = v => v == null ? "—" : `<span class="pbar"><i><b style="width:${(v * 100).toFixed(0)}%"></b></i><span class="n">${num(v * 100, 0)}</span></span>`;
+  const cols = [
+    ["#", (r, i) => `<span class="muted">${i + 1}</span>`, "n"],
+    ["Empresa", r => `<span class="tk">${esc(r.ticker)}</span> <span class="name">${esc(r.nombre)}</span>`],
+    ["Valor", r => barra(r.valor), "", "valor"],
+    ["Calidad", r => barra(r.calidad), "", "calidad"],
+    ["P/G", r => r.ey > 0 ? num(1 / r.ey, 1) : '<span class="muted">pierde</span>', "n", "ey"],
+    ["Flujo libre / precio", r => pct(r.fcfy), "n", "fcfy"],
+    ["ROE", r => pct(r.roe, 0), "n", "roe"],
+    ["Ventas a/a", r => `<span class="${clsSigno(r.crec)}">${pct(r.crec, 0, true)}</span>`, "n", "crec"],
+    ["Pasivo/activo", r => pct(r.apalanc, 0), "n", "apalanc"],
+    ["Piotroski", r => r.fscore == null ? "—" : num(r.fscore, 0) + "/9", "n", "fscore"],
+    ["Sorpresa", r => num(r.sue, 1), "n", "sue"],
+    ["Mom. 12-1", r => `<span class="${clsSigno(r.momentum)}">${pct(r.momentum, 0, true)}</span>`, "n", "momentum"],
+    ["Capitalización", r => usd(r.mktcap), "n", "mktcap"],
+    ["Elegida por", r => r.en.map(e => `<span class="chip tag">${esc(e.replace(" (control)", ""))}</span>`).join(" ")],
+  ];
+  $("#tbl-rank").innerHTML = `<thead><tr>${cols.map(c => `<th class="${c[2] || ""} ${c[3] ? "sort" : ""}" ${c[3] ? `data-c="${c[3]}"` : ""}>${c[0]}${c[3] === ordenCol ? ` <span class="arrow">${ordenDesc ? "↓" : "↑"}</span>` : ""}</th>`).join("")}</tr></thead><tbody>` +
+    filas.map((r, i) => `<tr class="click" data-t="${esc(r.ticker)}">${cols.map(c => `<td class="${c[2] || ""}">${c[1](r, i)}</td>`).join("")}</tr>`).join("") + "</tbody>";
+  $("#tbl-rank").querySelectorAll("th.sort").forEach(th => th.onclick = () => {
+    const c = th.dataset.c; ordenDesc = c === ordenCol ? !ordenDesc : true; ordenCol = c; dibujar();
+  });
+  $("#tbl-rank").querySelectorAll("tr.click").forEach(tr => tr.onclick = () => irEmpresa(tr.dataset.t));
+}
+
+// ---------------- empresa ----------------
+let tickerSel = null;
+function irEmpresa(t) { tickerSel = t; $("#sel-empresa").value = t; mostrar("empresa"); window.scrollTo({top: 0, behavior: "smooth"}); }
+function initEmpresa() {
+  const ts = Object.keys(D.emp).sort();
+  $("#sel-empresa").innerHTML = ts.map(t => `<option value="${esc(t)}">${esc(t)} · ${esc(D.emp[t].nombre)}</option>`).join("");
+  tickerSel = tickerSel || (D.rank.filas.slice().sort((a, b) => (b.vc ?? -1) - (a.vc ?? -1))[0] || {}).ticker || ts[0];
+  $("#sel-empresa").value = tickerSel;
+  $("#sel-empresa").onchange = () => { tickerSel = $("#sel-empresa").value; dibujar(); };
+}
+function dibujarEmpresa() {
+  const e = D.emp[tickerSel], r = D.rank.filas.find(x => x.ticker === tickerSel) || {};
+  if (!e) return;
+  $("#emp-titulo").textContent = `${tickerSel} · ${e.nombre}`;
+  $("#emp-sub").innerHTML = `Último trimestre informado: ${esc(r.ultimo_cierre || "—")} · <a href="https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=${e.cik}&type=10-&dateb=&owner=include&count=40" target="_blank" rel="noopener" style="color:inherit">ver presentaciones en la SEC ↗</a>`;
+  const k = [
+    ["Precio / ganancias", r.ey > 0 ? num(1 / r.ey, 1) : "pierde", "últimos 12 meses"],
+    ["Flujo libre / precio", pct(r.fcfy), "rendimiento en caja"],
+    ["ROE", pct(r.roe, 0), "ganancia / patrimonio"],
+    ["Margen bruto", pct(r.margen_bruto, 0), "margen operativo " + pct(r.margen_op, 0)],
+    ["Piotroski", r.fscore == null ? "—" : num(r.fscore, 0) + "/9", "salud del balance"],
+    ["Valor · Calidad", `${r.valor == null ? "—" : num(r.valor * 100, 0)} · ${r.calidad == null ? "—" : num(r.calidad * 100, 0)}`, "percentiles en la lista"],
+  ];
+  $("#emp-kpis").innerHTML = k.map(([l, v, h]) => `<div class="kpi"><div class="l">${l}</div><div class="v">${v}</div><div class="h">${h}</div></div>`).join("");
+  $("#emp-en").innerHTML = r.en && r.en.length ? `<span class="muted small">Hoy la elegirían:</span> ` + r.en.map(x => `<span class="chip tag">${esc(x)}</span>`).join(" ") : "";
+  const T = e.trimestres, fx = T.map(t => t.fin);
+  barChart($("#ch-ventas"), {x: fx, values: T.map(t => t.ventas), xFmt: trimTxt, nombre: "Ventas", aria: "Ventas por trimestre"});
+  barChart($("#ch-neto"), {x: fx, values: T.map(t => t.neto), xFmt: trimTxt, nombre: "Ganancia neta", aria: "Ganancia neta por trimestre"});
+  barChart($("#ch-fcf"), {x: fx, values: T.map(t => t.fcf), xFmt: trimTxt, nombre: "Flujo libre", aria: "Flujo de caja libre por trimestre"});
+  const mser = [
+    {name: "Margen bruto", values: T.map(t => t.ventas > 0 && t.bruta != null ? t.bruta / t.ventas : null), color: css("--s1")},
+    {name: "Margen operativo", values: T.map(t => t.ventas > 0 && t.operativo != null ? t.operativo / t.ventas : null), color: css("--s2")},
+  ];
+  leyenda($("#leg-margen"), mser);
+  lineChart($("#ch-margen"), {x: fx, xFmt: trimTxt, series: mser, yFmt: v => pct(v, 0), zero: true, h: 220, aria: "Márgenes por trimestre"});
+  const H = e.historia, hser = [
+    {name: "Valor", values: H.valor.map(v => v == null ? null : v * 100), color: css("--s1")},
+    {name: "Calidad", values: H.calidad.map(v => v == null ? null : v * 100), color: css("--s2")},
+  ];
+  leyenda($("#leg-hist"), hser);
+  if (H.fechas.length) lineChart($("#ch-hist"), {x: H.fechas, xFmt: mesTxt, series: hser, yMin: 0, yMax: 100, yFmt: v => num(v, 0), h: 220, aria: "Percentiles en el tiempo"});
+  else $("#ch-hist").innerHTML = '<p class="muted small">Sin historia.</p>';
+  const B = e.balance, filasB = [["Activo", "activo"], ["Pasivo", "pasivo"], ["Patrimonio", "patrimonio"], ["Caja", "caja"], ["Deuda de largo plazo", "deuda_lp"]];
+  $("#tbl-bal").innerHTML = `<thead><tr><th></th>${B.map(b => `<th class="n">${trimTxt(b.fin)}</th>`).join("")}</tr></thead><tbody>` +
+    filasB.map(([n, c]) => `<tr><td>${n}</td>${B.map(b => `<td class="n">${corto(b[c])}</td>`).join("")}</tr>`).join("") + "</tbody>";
+}
+
+// ---------------- arranque ----------------
+function dibujar() {
+  if (!D.estr) return;
+  if (tabActual === "estrategias") dibujarEstrategias();
+  if (tabActual === "ranking") dibujarRanking();
+  if (tabActual === "empresa") dibujarEmpresa();
+}
+let rz; addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(dibujar, 150); });
+
+async function cargar() {
+  const v = "?v=" + Date.now();
+  try {
+    const [a, b, c] = await Promise.all(["estrategias", "ranking", "empresas"].map(n => fetch("data/" + n + ".json" + v).then(r => { if (!r.ok) throw new Error(n); return r.json(); })));
+    D.estr = a; D.rank = b; D.emp = c;
+  } catch (e) {
+    $("#vacio").hidden = false; return;
+  }
+  $("#generado").textContent = "Actualizado " + D.estr.generado;
+  initEstrategias(); initRanking(); initEmpresa();
+  let t = "estrategias"; try { t = localStorage.getItem("fund_tab") || t; } catch (e) {}
+  mostrar(t);
+}
+cargar();
+</script>
+</body>
+</html>
