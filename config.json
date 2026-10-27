@@ -1,7 +1,6 @@
 {
   "_nota": "Lista editable de CEDEARs que puede elegir la estrategia. Cada cambio se publica solo en la próxima actualización.",
   "tops": [
-    10,
     5
   ],
   "meses_revision": [

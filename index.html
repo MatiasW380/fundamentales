@@ -40,7 +40,7 @@
 *{box-sizing:border-box}
 html,body{margin:0}
 body{background:var(--bg);color:var(--ink);font:15px/1.5 "Instrument Sans",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
-.wrap{max-width:1180px;margin:0 auto;padding:28px 16px 64px}
+.wrap{max-width:1440px;margin:0 auto;padding:28px 16px 64px}
 h1,h2,h3{font-family:"Bricolage Grotesque",system-ui,sans-serif;letter-spacing:-.02em;margin:0}
 h1{font-size:clamp(30px,5vw,44px);font-weight:700;line-height:1.05}
 h2{font-size:22px;font-weight:700}
@@ -126,7 +126,8 @@ td.monto-c{font-family:"Bricolage Grotesque",sans-serif;font-size:17px;font-weig
 
 <style>
 /* ---- capa nueva: cartera ---- */
-header{align-items:center}
+header{align-items:flex-start;flex-wrap:nowrap}
+.top-actions{flex-shrink:0;margin-top:8px}
 h1{font-size:clamp(34px,6vw,52px)}
 .seg{display:inline-flex;background:var(--surface-2);border-radius:999px;padding:4px;gap:2px}
 .seg button{border:0;background:transparent;color:var(--ink-2);font:inherit;font-size:14px;font-weight:600;padding:7px 14px;border-radius:999px;cursor:pointer;white-space:nowrap}
@@ -144,7 +145,8 @@ h1{font-size:clamp(34px,6vw,52px)}
 .resumen{display:flex;flex-wrap:wrap;gap:10px 28px;align-items:baseline;margin:6px 2px 0}
 .resumen .v{font-family:"Bricolage Grotesque",sans-serif;font-size:22px;font-weight:700;letter-spacing:-.02em}
 .resumen .l{font-size:13px;color:var(--ink-2)}
-.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(225px,1fr));gap:12px}
+.tiles{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
+@media (max-width:1100px){.tiles{grid-template-columns:repeat(3,minmax(0,1fr))}}
 .tile{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px 16px 14px;cursor:pointer;display:flex;flex-direction:column;gap:2px;transition:border-color .15s,transform .15s;text-align:left;font:inherit;color:inherit}
 .tile:hover{border-color:var(--ink-3);transform:translateY(-1px)}
 .tile .top{display:flex;justify-content:space-between;align-items:center}
@@ -176,12 +178,8 @@ h1{font-size:clamp(34px,6vw,52px)}
 @media (max-width:640px){
   .rev{grid-template-columns:1fr 1fr;gap:14px}
   .rev .mid{grid-column:1 / -1;order:3}
-  .tiles{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .tiles{grid-template-columns:1fr;gap:10px}
   .ss{display:inline!important}
-  .tile .met{font-size:12px;grid-template-columns:1fr;gap:5px}
-  .tile .met div{display:flex;align-items:baseline;gap:6px;text-align:left!important;white-space:nowrap}
-  .tile .met b{order:3;margin-left:auto;font-size:12.5px}
-  .tile .met i{order:2;display:inline}
   .resumen{gap:6px 18px}
   .tile{padding:13px}
   .tile .tk{font-size:22px}
@@ -197,7 +195,6 @@ h1{font-size:clamp(34px,6vw,52px)}
       <div class="sub" id="sub"></div>
     </div>
     <div class="top-actions">
-      <div class="seg" role="group" aria-label="Tamaño de la cartera" id="seg"></div>
       <button class="icon-btn" id="tema" title="Cambiar tema" aria-label="Cambiar tema" style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;padding:0"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M8 1.5a6.5 6.5 0 0 1 0 13z" fill="currentColor"/></svg></button>
     </div>
   </header>
@@ -452,19 +449,10 @@ function leyenda(el, series) {
 
 
 // ---------------- estado ----------------
-let tabActual = "cartera", topSel = "10";
-try { topSel = localStorage.getItem("mom_top") || topSel; } catch (e) {}
-const V = () => D.m.variantes[topSel] || Object.values(D.m.variantes)[0];
+let tabActual = "cartera";
+const V = () => Object.values(D.m.variantes)[0];
+const topSel = () => String(V().cartera.tickers.length);
 
-function armarSeg() {
-  const tops = Object.keys(D.m.variantes).sort((a, b) => b - a);
-  if (!tops.includes(topSel)) topSel = tops[0];
-  $("#seg").innerHTML = tops.map(t => `<button aria-pressed="${t === topSel}" data-t="${t}">${t} acciones</button>`).join("");
-  $("#seg").querySelectorAll("button").forEach(b => b.onclick = () => {
-    topSel = b.dataset.t; try { localStorage.setItem("mom_top", topSel); } catch (e) {}
-    armarSeg(); dibujar();
-  });
-}
 function mostrar(tab) {
   tabActual = tab;
   document.querySelectorAll("nav button").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === tab));
@@ -508,8 +496,8 @@ function dibujarCartera() {
       <div class="tk">${esc(t)}</div><div class="nm">${esc(nombre(t))}</div>
       <div class="met">
         <div>12 meses<b class="pos">${pct(C.momentum_eleccion[t], 0, true)}</b></div>
-        <div><span class="hs">en cartera</span><span class="ss">ingreso</span><b class="${clsSigno(di)}">${pct(di, 1, true)}</b><i><span class="hs">desde </span>${mesAnio(ing)}</i></div>
-        <div><span class="hs">últ. revisión</span><span class="ss">últ. rev.</span><b class="${clsSigno(d)}">${pct(d, 1, true)}</b></div>
+        <div>en cartera<b class="${clsSigno(di)}">${pct(di, 1, true)}</b><i>desde ${mesAnio(ing)}</i></div>
+        <div>últ. revisión<b class="${clsSigno(d)}">${pct(d, 1, true)}</b></div>
       </div>
     </button>`;
   }).join("");
@@ -539,9 +527,9 @@ function dibujarCartera() {
 // ---------------- historia ----------------
 function dibujarHistoria() {
   const v = V(), Cv = v.curva, R = v.resumen;
-  $("#h-titulo").textContent = `Cartera de ${topSel} desde ${R.desde.slice(0, 4)}`;
+  $("#h-titulo").textContent = `Cartera de ${topSel()} desde ${R.desde.slice(0, 4)}`;
   const series = [
-    {name: `Momentum ${topSel}`, corto: "Momentum", values: Cv.estrategia, color: css("--s1"), width: 2.5},
+    {name: `Momentum ${topSel()}`, corto: "Momentum", values: Cv.estrategia, color: css("--s1"), width: 2.5},
     {name: "SPY", values: Cv.spy, color: css("--s2")},
   ];
   leyenda($("#h-leg"), series);
@@ -601,7 +589,6 @@ async function cargar() {
   } catch (e) { $("#vacio").hidden = false; return; }
   try { D.f = await fetch("data/fichas.json" + q).then(r => r.ok ? r.json() : {}); } catch (e) { D.f = {}; }
   $("#sub").textContent = `Las acciones con CEDEAR que más subieron en el último año · actualizado ${D.m.generado.slice(8, 10)}/${D.m.generado.slice(5, 7)} ${D.m.generado.slice(11)}`;
-  armarSeg();
   let t = "cartera"; try { t = localStorage.getItem("mom_tab2") || t; } catch (e) {}
   mostrar(["cartera", "historia", "empresa"].includes(t) ? t : "cartera");
 }
