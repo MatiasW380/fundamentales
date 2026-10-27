@@ -121,7 +121,7 @@ h2.big{font-size:clamp(24px,3.6vw,34px);line-height:1.15;margin-bottom:10px}
 .pasos li{margin:0 0 8px}
 td.monto-c{font-family:"Bricolage Grotesque",sans-serif;font-size:17px;font-weight:700;text-align:right}
 .chip.out{background:var(--bad-bg);color:var(--bad)}
-@media (max-width:640px){.card{padding:16px}.tbl-wrap{margin:0 -16px;padding:0 16px}.lead{font-size:16px}}
+@media (max-width:640px){.hs{display:none!important}td.monto-c{font-size:15px}.card{padding:16px}.tbl-wrap{margin:0 -16px;padding:0 16px}.lead{font-size:16px}}
 </style>
 
 </head>
@@ -452,12 +452,12 @@ function dibujarComprar() {
         `<p class="muted small" style="margin:10px 0 0">Si ya tenías la cartera anterior, solo hacé estos cambios. Las demás se quedan como están.</p>`
       : '<span class="muted">No cambió nada: se mantienen las mismas.</span>';
   // tabla
-  $("#tbl-comprar").innerHTML = `<thead><tr><th>#</th><th>Acción</th><th class="n">Había subido en 12 meses</th><th class="n">Desde que se eligió</th><th class="n">Precio / ganancias</th><th class="n">Comprar</th></tr></thead><tbody>` +
+  $("#tbl-comprar").innerHTML = `<thead><tr><th>#</th><th>Acción</th><th class="n">Subió 12 meses</th><th class="n">Desde la elección</th><th class="n hs">Precio / ganancias</th><th class="n">Comprar</th></tr></thead><tbody>` +
     lista.map((t, i) => `<tr class="click" data-t="${esc(t)}"><td class="n muted">${i + 1}</td>` +
-      `<td><span class="tk">${esc(t)}</span> <span class="name">${esc(nombre(t))}</span></td>` +
+      `<td><span class="tk">${esc(t)}</span> <span class="name hs">${esc(nombre(t))}</span></td>` +
       `<td class="n pos">${pct(C.momentum_eleccion[t], 0, true)}</td>` +
       `<td class="n ${clsSigno(C.desde_eleccion[t])}">${pct(C.desde_eleccion[t], 1, true)}</td>` +
-      `<td class="n">${pe(t)}</td><td class="monto-c">US$ ${num(cada, 0)}</td></tr>`).join("") + "</tbody>";
+      `<td class="n hs">${pe(t)}</td><td class="monto-c">US$ ${num(cada, 0)}</td></tr>`).join("") + "</tbody>";
   $("#tbl-comprar").querySelectorAll("tr.click").forEach(tr => tr.onclick = () => irEmpresa(tr.dataset.t));
   const vals = Object.values(C.desde_eleccion).filter(v => v != null), prom = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
   $("#c-desde").innerHTML = `Desde el ${fechaCorta(C.fecha)} la cartera va <b class="${clsSigno(prom)}">${pct(prom, 1, true)}</b> en promedio, y SPY <b class="${clsSigno(C.spy_desde_eleccion)}">${pct(C.spy_desde_eleccion, 1, true)}</b>. Precios al ${fechaCorta(M.precios_al)}.`;
@@ -473,10 +473,10 @@ function dibujarComprar() {
     `Compra lo que más subió, así que suele quedar concentrada en pocos sectores. Usala para una parte de la cartera, no para toda.`,
   ].map(x => `<li>${x}</li>`).join("");
   // candidatas
-  $("#tbl-cand").innerHTML = `<thead><tr><th>#</th><th>Acción</th><th class="n">Subió en 12 meses</th><th class="n">Precio / ganancias</th><th></th></tr></thead><tbody>` +
+  $("#tbl-cand").innerHTML = `<thead><tr><th>#</th><th>Acción</th><th class="n">Subió 12 meses</th><th class="n hs">Precio / ganancias</th><th></th></tr></thead><tbody>` +
     M.candidatas.map((c, i) => `<tr class="click" data-t="${esc(c.ticker)}"><td class="n muted">${i + 1}</td>` +
-      `<td><span class="tk">${esc(c.ticker)}</span> <span class="name">${esc(nombre(c.ticker))}</span></td>` +
-      `<td class="n ${clsSigno(c.momentum)}">${pct(c.momentum, 0, true)}</td><td class="n">${pe(c.ticker)}</td>` +
+      `<td><span class="tk">${esc(c.ticker)}</span> <span class="name hs">${esc(nombre(c.ticker))}</span></td>` +
+      `<td class="n ${clsSigno(c.momentum)}">${pct(c.momentum, 0, true)}</td><td class="n hs">${pe(c.ticker)}</td>` +
       `<td>${c.en_cartera ? '<span class="chip tag">En cartera</span>' : (i < M.regla.top ? '<span class="chip ok">Entraría</span>' : "")}</td></tr>`).join("") + "</tbody>";
   $("#tbl-cand").querySelectorAll("tr.click").forEach(tr => tr.onclick = () => irEmpresa(tr.dataset.t));
 }
