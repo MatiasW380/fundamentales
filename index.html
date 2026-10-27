@@ -111,6 +111,15 @@ tr.sel td{background:var(--band)}
 .picks button{border:1px solid var(--line);background:var(--surface-2);color:var(--ink);font:inherit;font-size:13px;font-weight:600;padding:4px 10px;border-radius:8px;cursor:pointer}
 .picks button:hover{border-color:var(--ink-3)}
 [hidden]{display:none!important}
+.hero{padding:26px 24px}
+.eyebrow{font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);margin-bottom:6px}
+h2.big{font-size:clamp(24px,3.6vw,34px);line-height:1.15;margin-bottom:10px}
+.monto{font-weight:600;display:flex;align-items:center;gap:8px}
+.monto input{font:inherit;font-weight:600;width:120px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink)}
+.pasos{margin:0;padding-left:20px}
+.pasos li{margin:0 0 8px}
+td.monto-c{font-family:"Bricolage Grotesque",sans-serif;font-size:17px;font-weight:700;text-align:right}
+.chip.out{background:var(--bad-bg);color:var(--bad)}
 @media (max-width:640px){.card{padding:16px}.tbl-wrap{margin:0 -16px;padding:0 16px}.lead{font-size:16px}}
 </style>
 </head>
@@ -128,7 +137,8 @@ tr.sel td{background:var(--band)}
   </header>
 
   <nav role="tablist">
-    <button role="tab" data-tab="estrategias" aria-selected="true">Estrategias</button>
+    <button role="tab" data-tab="comprar" aria-selected="true">Qué comprar</button>
+    <button role="tab" data-tab="estrategias" aria-selected="false">Estrategias</button>
     <button role="tab" data-tab="ranking" aria-selected="false">Ranking de hoy</button>
     <button role="tab" data-tab="empresa" aria-selected="false">Empresa</button>
   </nav>
@@ -137,6 +147,36 @@ tr.sel td{background:var(--band)}
     <h2>Todavía no hay resultados</h2>
     <p class="muted">Corré las cuatro celdas del laboratorio en Colab. La última sube los datos a este repo y Vercel actualiza la página sola.</p>
   </div>
+
+  <!-- ===================== QUÉ COMPRAR ===================== -->
+  <section id="tab-comprar" class="stack" hidden>
+    <div class="card hero">
+      <div class="eyebrow" id="c-fecha"></div>
+      <h2 class="big" id="c-titulo"></h2>
+      <p class="lead" id="c-regla"></p>
+      <div class="row" style="margin-top:14px;gap:18px">
+        <label class="monto">Voy a invertir US$ <input type="number" id="c-monto" min="0" step="50" value="1000" inputmode="decimal"></label>
+        <span class="muted small" id="c-cuenta"></span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="row" style="margin-bottom:12px">
+        <h2>Lista de compra</h2><span class="spacer"></span><span class="chip tag" id="c-proxima"></span>
+      </div>
+      <div class="tbl-wrap"><table id="tbl-comprar"></table></div>
+      <div id="c-cambios" style="margin-top:14px"></div>
+    </div>
+    <div class="grid g2">
+      <div class="card">
+        <h3 style="margin-bottom:10px">Cómo se usa</h3>
+        <ol class="pasos" id="c-pasos"></ol>
+      </div>
+      <div class="card">
+        <h3 style="margin-bottom:10px">Qué tan confiable es <span id="c-conf"></span></h3>
+        <ul class="pasos" id="c-riesgos"></ul>
+      </div>
+    </div>
+  </section>
 
   <!-- ===================== ESTRATEGIAS ===================== -->
   <section id="tab-estrategias" class="stack" hidden>
@@ -386,11 +426,11 @@ function leyenda(el, series) {
 }
 
 // ---------------- pestañas ----------------
-let tabActual = "estrategias";
+let tabActual = "comprar";
 function mostrar(tab) {
   tabActual = tab;
   document.querySelectorAll("nav button").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === tab));
-  for (const t of ["estrategias", "ranking", "empresa"]) $("#tab-" + t).hidden = t !== tab || !D.estr;
+  for (const t of ["comprar", "estrategias", "ranking", "empresa"]) $("#tab-" + t).hidden = t !== tab || !D.estr;
   try { localStorage.setItem("fund_tab", tab); } catch (e) {}
   dibujar();
 }
@@ -558,9 +598,96 @@ function dibujarEmpresa() {
     filasB.map(([n, c]) => `<tr><td>${n}</td>${B.map(b => `<td class="n">${corto(b[c])}</td>`).join("")}</tr>`).join("") + "</tbody>";
 }
 
+// ---------------- qué comprar ----------------
+const EXPLICA = {
+  "Valor": "Compra las empresas más baratas en relación a lo que ganan, a su flujo de caja y a su patrimonio.",
+  "Calidad": "Compra las empresas más rentables y con menos deuda.",
+  "Valor + calidad": "Compra empresas que a la vez son baratas y rentables.",
+  "Piotroski en baratas": "Entre las baratas, compra las que vienen mejorando sus balances.",
+  "Sorpresa de ganancias": "Compra las empresas que acaban de presentar ganancias mucho mejores que un año antes.",
+  "Momentum 12-1 (control)": "Compra las acciones que más subieron en los últimos 12 meses (sin contar el último mes), y cada 3 meses vuelve a elegir.",
+};
+const MES_N = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+function proximaRevision(meses, hoy) {
+  for (let k = 0; k < 13; k++) {
+    const d = new Date(hoy.getFullYear(), hoy.getMonth() + k + 1, 0);   // último día del mes
+    if (meses.includes(d.getMonth() + 1) && d >= new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate())) return d;
+  }
+  return null;
+}
+function elegirRecomendada() {
+  const tab = D.estr.tabla;
+  const ok = tab.filter(r => r.veredicto === "aprobada y confirmada").sort((a, b) => (b.t_univ ?? 0) - (a.t_univ ?? 0));
+  return ok[0] || null;
+}
+function dibujarComprar() {
+  const E = D.estr, R = D.rank, rec = elegirRecomendada();
+  const hoy = new Date(R.fecha + "T12:00:00");
+  $("#c-fecha").textContent = "Recomendación al " + hoy.toLocaleDateString("es-AR", {day: "numeric", month: "long", year: "numeric"});
+  if (!rec) {
+    $("#c-titulo").textContent = "Hoy no hay una compra recomendada: lo más sensato es SPY";
+    $("#c-regla").textContent = "Ninguna estrategia le ganó a comprar todo el mercado en las pruebas. Mientras eso no cambie, comprar el CEDEAR de SPY es la opción más simple y barata.";
+    ["#tbl-comprar", "#c-cambios", "#c-pasos", "#c-riesgos"].forEach(s => $(s).innerHTML = "");
+    $("#c-proxima").textContent = ""; $("#c-conf").innerHTML = ""; $("#c-cuenta").textContent = "";
+    return;
+  }
+  const lista = (R.elegidas[rec.estrategia] || []).slice(0, rec.top);
+  const filas = lista.map(t => R.filas.find(f => f.ticker === t) || {ticker: t, nombre: ""});
+  const meses = rec.estrategia.startsWith("Sorpresa") ? [1,2,3,4,5,6,7,8,9,10,11,12] : E.parametros.meses_rebalanceo;
+  const prox = proximaRevision(meses, hoy);
+  $("#c-titulo").textContent = `Comprar estas ${lista.length} acciones en partes iguales`;
+  $("#c-regla").innerHTML = `<b>Por qué:</b> ${esc(EXPLICA[rec.estrategia] || rec.estrategia)} Es la única regla que pasó todas las pruebas: ` +
+    `entre ${E.periodos.inicio.slice(0, 4)} y ${E.periodos.reserva.slice(0, 4)} rindió <b>${pct(rec.anual_dev, 0)}</b> anual contra <b>${pct(E.referencias_anual.dev.SPY, 0)}</b> de SPY, ` +
+    `y en los últimos ${+E.periodos.fin.slice(0, 4) - +E.periodos.reserva.slice(0, 4)} años, que se guardaron para confirmar, <b>${pct(rec.anual_reserva, 0)}</b> contra <b>${pct(E.referencias_anual.reserva.SPY, 0)}</b>.`;
+  $("#c-proxima").textContent = prox ? `Próxima revisión: fin de ${MES_N[prox.getMonth()]}` : "";
+  // monto por acción
+  let monto = 1000;
+  try { monto = +(localStorage.getItem("fund_monto") || 1000); } catch (e) {}
+  const inp = $("#c-monto");
+  if (document.activeElement !== inp) inp.value = monto;
+  inp.oninput = () => { try { localStorage.setItem("fund_monto", inp.value); } catch (e) {} dibujarComprar(); };
+  monto = +inp.value || 0;
+  const cada = lista.length ? monto / lista.length : 0, comision = monto * E.parametros.costo_lado;
+  $("#c-cuenta").textContent = `US$ ${num(cada, 0)} en cada una · costo estimado de compra US$ ${num(comision, 0)}`;
+  $("#tbl-comprar").innerHTML = `<thead><tr><th>#</th><th>Acción</th><th class="n">Subió en 12 meses</th><th class="n">Precio / ganancias</th><th class="n">Comprar</th></tr></thead><tbody>` +
+    filas.map((r, i) => `<tr class="click" data-t="${esc(r.ticker)}"><td class="n muted">${i + 1}</td>` +
+      `<td><span class="tk">${esc(r.ticker)}</span> <span class="name">${esc(r.nombre)}</span></td>` +
+      `<td class="n ${clsSigno(r.momentum)}">${pct(r.momentum, 0, true)}</td>` +
+      `<td class="n">${r.ey > 0 ? num(1 / r.ey, 1) : '<span class="muted">pierde</span>'}</td>` +
+      `<td class="monto-c">US$ ${num(cada, 0)}</td></tr>`).join("") + "</tbody>";
+  $("#tbl-comprar").querySelectorAll("tr.click").forEach(tr => tr.onclick = () => irEmpresa(tr.dataset.t));
+  // cambios respecto de la última lista vista en este navegador
+  let previa = null;
+  try { previa = JSON.parse(localStorage.getItem("fund_lista") || "null"); } catch (e) {}
+  if (previa && previa.estrategia === rec.clave && previa.fecha !== R.fecha) {
+    const salen = previa.lista.filter(t => !lista.includes(t)), entran = lista.filter(t => !previa.lista.includes(t));
+    $("#c-cambios").innerHTML = salen.length || entran.length
+      ? `<div class="row small"><b>Cambios desde el ${esc(previa.fecha)}:</b> ${salen.map(t => `<span class="chip out">Vender ${esc(t)}</span>`).join(" ")} ${entran.map(t => `<span class="chip ok">Comprar ${esc(t)}</span>`).join(" ")}</div>`
+      : `<div class="muted small">Sin cambios desde el ${esc(previa.fecha)}: mantené las mismas.</div>`;
+  } else {
+    $("#c-cambios").innerHTML = "";
+    try { if (!previa || previa.fecha !== R.fecha || previa.estrategia !== rec.clave) localStorage.setItem("fund_lista", JSON.stringify({fecha: R.fecha, estrategia: rec.clave, lista})); } catch (e) {}
+  }
+  $("#c-pasos").innerHTML = [
+    `Comprá los CEDEARs de la lista, más o menos el mismo monto en dólares en cada uno.`,
+    `No hagas nada hasta la próxima revisión${prox ? ` (fin de ${MES_N[prox.getMonth()]})` : ""}: corré el laboratorio en Colab y volvé a esta página.`,
+    `En cada revisión: vendé las que salieron de la lista y comprá las que entraron. Las que siguen, no las toques.`,
+    `Si una acción no tiene CEDEAR en tu broker, salteala y repartí entre las demás.`,
+  ].map(x => `<li>${x}</li>`).join("");
+  const baja = (rec.sharpe_defl ?? 0) < 0.5 || (rec.t_univ ?? 0) < 2.5;
+  $("#c-conf").innerHTML = baja ? '<span class="chip warn">Media-baja</span>' : '<span class="chip ok">Buena</span>';
+  $("#c-riesgos").innerHTML = [
+    `En el peor momento de la prueba llegó a perder <b>${pct(-rec.caida_dev, 0)}</b> desde su máximo. Hay que poder aguantar eso sin vender.`,
+    `Los resultados del pasado están inflados: la prueba usa empresas que hoy existen, y las que quebraron no aparecen. El rendimiento real probablemente sea bastante menor.`,
+    baja ? `Pasó las pruebas con poco margen, y se probaron ${E.tabla.length} reglas distintas para encontrarla. Puede haber sido en parte suerte.` : `Pasó las pruebas con margen, aun contando las ${E.tabla.length} reglas probadas.`,
+    `Concentra el riesgo: hoy la lista está dominada por pocos sectores. Usala para una parte de la cartera, no para todo.`,
+  ].map(x => `<li>${x}</li>`).join("");
+}
+
 // ---------------- arranque ----------------
 function dibujar() {
   if (!D.estr) return;
+  if (tabActual === "comprar") dibujarComprar();
   if (tabActual === "estrategias") dibujarEstrategias();
   if (tabActual === "ranking") dibujarRanking();
   if (tabActual === "empresa") dibujarEmpresa();
@@ -577,7 +704,7 @@ async function cargar() {
   }
   $("#generado").textContent = "Actualizado " + D.estr.generado;
   initEstrategias(); initRanking(); initEmpresa();
-  let t = "estrategias"; try { t = localStorage.getItem("fund_tab") || t; } catch (e) {}
+  let t = "comprar"; try { t = localStorage.getItem("fund_tab") || t; } catch (e) {}
   mostrar(t);
 }
 cargar();
