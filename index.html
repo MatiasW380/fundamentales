@@ -168,7 +168,10 @@ h1{font-size:clamp(34px,6vw,52px)}
   .rev .mid{grid-column:1 / -1;order:3}
   .tiles{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
   .ss{display:inline!important}
-  .tile .met{font-size:11px}
+  .tile .met{font-size:12px;grid-template-columns:1fr;gap:5px}
+  .tile .met div{display:flex;align-items:baseline;gap:6px;text-align:left!important;white-space:nowrap}
+  .tile .met b{order:3;margin-left:auto;font-size:12.5px}
+  .tile .met i{order:2;display:inline}
   .resumen{gap:6px 18px}
   .tile{padding:13px}
   .tile .tk{font-size:22px}
@@ -496,7 +499,7 @@ function dibujarCartera() {
       <div class="tk">${esc(t)}</div><div class="nm">${esc(nombre(t))}</div>
       <div class="met">
         <div>12 meses<b class="pos">${pct(C.momentum_eleccion[t], 0, true)}</b></div>
-        <div>en cartera<b class="${clsSigno(di)}">${pct(di, 1, true)}</b><i>${ing ? "desde " + mesAnio(ing) : ""}</i></div>
+        <div><span class="hs">en cartera</span><span class="ss">ingreso</span><b class="${clsSigno(di)}">${pct(di, 1, true)}</b><i><span class="hs">desde </span>${mesAnio(ing)}</i></div>
         <div><span class="hs">últ. revisión</span><span class="ss">últ. rev.</span><b class="${clsSigno(d)}">${pct(d, 1, true)}</b></div>
       </div>
     </button>`;
