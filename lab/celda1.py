@@ -23,14 +23,21 @@ except ImportError:                                   # fuera de Colab (pruebas 
 os.makedirs(os.path.join(DIR, "sec"), exist_ok=True)
 
 
+ERRORES_SECRETOS = {}
+
+
 def secreto(nombre):
     if userdata is not None:
         try:
             return userdata.get(nombre) or ""
-        except Exception:
-            pass
+        except Exception as e:                        # no existe, o el notebook no tiene acceso
+            ERRORES_SECRETOS[nombre] = type(e).__name__
     return os.environ.get(nombre, "")
 
+
+# ----------------------------- contacto para la SEC -----------------------------
+# Si preferís no usar los Secretos de Colab, escribilo acá (nombre y mail). Si el secreto existe, tiene prioridad.
+SEC_CONTACTO = ""            # ejemplo: "Matias Baronetto tu_mail@dominio.com"
 
 # ----------------------------- parámetros -----------------------------
 INICIO_PRECIOS = "2009-01-01"
@@ -87,9 +94,16 @@ SALDOS = ["activo", "pasivo", "patrimonio", "activo_cte", "pasivo_cte", "deuda_l
 
 
 # ----------------------------- SEC -----------------------------
-SEC_UA = secreto("SEC_USER_AGENT")
+SEC_UA = secreto("SEC_USER_AGENT") or SEC_CONTACTO
 if not re.search(r"\S+@\S+\.\S+", SEC_UA):
-    raise SystemExit("Falta el secreto SEC_USER_AGENT (ejemplo: 'Matias tu_mail@dominio.com'). La SEC rechaza descargas sin contacto.")
+    motivo = ERRORES_SECRETOS.get("SEC_USER_AGENT", "")
+    if motivo == "NotebookAccessError":
+        detalle = "El secreto existe pero este notebook no tiene acceso: en la llave, activá 'Acceso del notebook' en SEC_USER_AGENT."
+    elif motivo == "SecretNotFoundError":
+        detalle = "No hay ningún secreto llamado exactamente SEC_USER_AGENT (revisá mayúsculas y guion bajo)."
+    else:
+        detalle = "El valor no tiene un mail válido."
+    raise SystemExit(f"Falta el contacto para la SEC. {detalle} O completá SEC_CONTACTO al principio de esta celda.")
 SES = requests.Session()
 SES.headers.update({"User-Agent": SEC_UA, "Accept-Encoding": "gzip, deflate"})
 
