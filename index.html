@@ -3,12 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Fundamentales</title>
-<meta name="description" content="Laboratorio de análisis fundamental de CEDEARs: balances de la SEC, estrategias probadas y ranking de hoy.">
+<title>Momentum CEDEARs</title>
+<meta name="description" content="Qué CEDEARs comprar según la regla de momentum 12-1, actualizado solo todos los días.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
+.chip.out{background:var(--bad-bg);color:var(--bad)}
 :root{
   color-scheme:light;
   --bg:#f6f4ee; --surface:#fcfcfb; --surface-2:#efece3; --line:#dedad0; --grid:#e9e6dd;
@@ -122,13 +123,14 @@ td.monto-c{font-family:"Bricolage Grotesque",sans-serif;font-size:17px;font-weig
 .chip.out{background:var(--bad-bg);color:var(--bad)}
 @media (max-width:640px){.card{padding:16px}.tbl-wrap{margin:0 -16px;padding:0 16px}.lead{font-size:16px}}
 </style>
+
 </head>
 <body>
 <div class="wrap">
   <header>
     <div>
-      <h1>Fundamentales</h1>
-      <div class="sub">Balances de la SEC de las empresas con CEDEAR, estrategias probadas sin mirar el futuro y el ranking de hoy.</div>
+      <h1>Momentum</h1>
+      <div class="sub">Las 10 acciones con CEDEAR que más subieron en el último año. Se renuevan cada 3 meses y la página se actualiza sola.</div>
     </div>
     <div class="top-actions">
       <span class="muted small" id="generado"></span>
@@ -138,14 +140,13 @@ td.monto-c{font-family:"Bricolage Grotesque",sans-serif;font-size:17px;font-weig
 
   <nav role="tablist">
     <button role="tab" data-tab="comprar" aria-selected="true">Qué comprar</button>
-    <button role="tab" data-tab="estrategias" aria-selected="false">Estrategias</button>
-    <button role="tab" data-tab="ranking" aria-selected="false">Ranking de hoy</button>
+    <button role="tab" data-tab="historia" aria-selected="false">Cómo le fue</button>
     <button role="tab" data-tab="empresa" aria-selected="false">Empresa</button>
   </nav>
 
   <div id="vacio" class="card empty" hidden>
-    <h2>Todavía no hay resultados</h2>
-    <p class="muted">Corré las cuatro celdas del laboratorio en Colab. La última sube los datos a este repo y Vercel actualiza la página sola.</p>
+    <h2>Todavía no hay datos</h2>
+    <p class="muted">La primera actualización automática corre esta tarde, después del cierre de Nueva York. También se puede lanzar a mano desde la pestaña Actions del repo.</p>
   </div>
 
   <!-- ===================== QUÉ COMPRAR ===================== -->
@@ -159,12 +160,16 @@ td.monto-c{font-family:"Bricolage Grotesque",sans-serif;font-size:17px;font-weig
         <span class="muted small" id="c-cuenta"></span>
       </div>
     </div>
+    <div class="card" id="c-cambios-card">
+      <div class="row" style="margin-bottom:10px"><h2>Última revisión</h2><span class="spacer"></span><span class="muted small" id="c-cambios-fecha"></span></div>
+      <div id="c-cambios"></div>
+    </div>
     <div class="card">
       <div class="row" style="margin-bottom:12px">
         <h2>Lista de compra</h2><span class="spacer"></span><span class="chip tag" id="c-proxima"></span>
       </div>
       <div class="tbl-wrap"><table id="tbl-comprar"></table></div>
-      <div id="c-cambios" style="margin-top:14px"></div>
+      <p class="muted small" style="margin:12px 0 0" id="c-desde"></p>
     </div>
     <div class="grid g2">
       <div class="card">
@@ -172,58 +177,33 @@ td.monto-c{font-family:"Bricolage Grotesque",sans-serif;font-size:17px;font-weig
         <ol class="pasos" id="c-pasos"></ol>
       </div>
       <div class="card">
-        <h3 style="margin-bottom:10px">Qué tan confiable es <span id="c-conf"></span></h3>
+        <h3 style="margin-bottom:10px">Antes de poner plata</h3>
         <ul class="pasos" id="c-riesgos"></ul>
       </div>
     </div>
-  </section>
-
-  <!-- ===================== ESTRATEGIAS ===================== -->
-  <section id="tab-estrategias" class="stack" hidden>
     <div class="card">
-      <p class="lead" id="resumen"></p>
-    </div>
-    <div class="card">
-      <div class="row" style="margin-bottom:6px">
-        <h2 id="titulo-curva">Cuánto se hacía US$ 1</h2>
-        <span class="spacer"></span>
-        <select id="sel-estrategia" aria-label="Estrategia"></select>
-      </div>
-      <div class="muted small" id="sub-curva"></div>
-      <div class="legend" id="leg-curva"></div>
-      <div class="chart" id="ch-curva"></div>
-      <div class="note" style="margin-top:12px">La franja sombreada es el período reservado: las estrategias se aprueban o no sin mirarla, y recién después se confirma ahí.</div>
-    </div>
-    <div class="card">
-      <h2 style="margin-bottom:4px">Todas las variantes</h2>
-      <p class="muted small" style="margin:0 0 12px" id="sub-tabla"></p>
-      <div class="tbl-wrap"><table id="tbl-estr"></table></div>
-    </div>
-    <div class="card">
-      <h3 style="margin-bottom:10px" id="titulo-cartera">Cartera actual de la estrategia</h3>
-      <div class="picks" id="cartera"></div>
+      <h2 style="margin-bottom:4px">Cómo viene la próxima revisión</h2>
+      <p class="muted small" style="margin:0 0 12px">Si la revisión fuera hoy, estas serían las primeras del ranking. Es solo para seguirlo: no hace falta hacer nada hasta la fecha de revisión.</p>
+      <div class="tbl-wrap"><table id="tbl-cand"></table></div>
     </div>
   </section>
 
-  <!-- ===================== RANKING ===================== -->
-  <section id="tab-ranking" class="stack" hidden>
+  <!-- ===================== HISTORIA ===================== -->
+  <section id="tab-historia" class="stack" hidden>
     <div class="card">
-      <div class="row" style="margin-bottom:14px">
-        <input type="search" id="buscar" placeholder="Buscar ticker o nombre" aria-label="Buscar">
-        <select id="orden" aria-label="Ordenar por">
-          <option value="vc">Valor + calidad</option>
-          <option value="valor">Valor</option>
-          <option value="calidad">Calidad</option>
-          <option value="fscore">Piotroski</option>
-          <option value="sue">Sorpresa de ganancias</option>
-          <option value="momentum">Momentum 12-1</option>
-        </select>
-        <select id="filtro-estr" aria-label="Filtrar por estrategia"><option value="">Todas las empresas</option></select>
-        <span class="spacer"></span>
-        <span class="muted small" id="cuenta"></span>
-      </div>
-      <div class="tbl-wrap"><table id="tbl-rank"></table></div>
-      <p class="note" style="margin-top:14px">Valor y calidad son percentiles (0 a 100) dentro de las empresas de la lista: 100 = la más barata o la de mejor calidad. P/G = precio sobre ganancias de los últimos 12 meses. Es un ranking, no una recomendación: mirá primero si la estrategia fue aprobada.</p>
+      <h2 style="margin-bottom:6px">Si hubieras seguido la regla desde <span id="h-desde"></span></h2>
+      <p class="muted small" style="margin:0 0 6px">Simulación neta de comisiones, con las mismas reglas que usa la página. Escala logarítmica: la misma distancia vertical es el mismo porcentaje.</p>
+      <div class="legend" id="h-leg"></div>
+      <div class="chart" id="h-curva"></div>
+    </div>
+    <div class="kpis" id="h-kpis"></div>
+    <div class="card">
+      <h3 style="margin-bottom:8px">Por qué estos números están inflados</h3>
+      <p class="muted" style="margin:0">La simulación elige entre las empresas que hoy tienen CEDEAR. Las que hace años subían fuerte y después se hundieron o desaparecieron no están en la lista, así que el pasado se ve mejor de lo que fue. Además, esta regla se eligió entre 12 que se probaron. Esperá bastante menos que esto.</p>
+    </div>
+    <div class="card">
+      <h3 style="margin-bottom:10px">Últimas revisiones</h3>
+      <div class="tbl-wrap"><table id="tbl-hist"></table></div>
     </div>
   </section>
 
@@ -238,21 +218,18 @@ td.monto-c{font-family:"Bricolage Grotesque",sans-serif;font-size:17px;font-weig
         <span class="spacer"></span>
         <select id="sel-empresa" aria-label="Empresa"></select>
       </div>
-      <div class="kpis" id="emp-kpis" style="margin-top:16px"></div>
-      <div class="row" style="margin-top:12px" id="emp-en"></div>
     </div>
-    <div class="grid g3">
-      <div class="card"><h3>Ventas por trimestre</h3><div class="chart" id="ch-ventas"></div></div>
-      <div class="card"><h3>Ganancia neta por trimestre</h3><div class="chart" id="ch-neto"></div></div>
-      <div class="card"><h3>Flujo de caja libre por trimestre</h3><div class="chart" id="ch-fcf"></div></div>
-    </div>
-    <div class="grid g2">
-      <div class="card"><h3>Márgenes</h3><div class="legend" id="leg-margen"></div><div class="chart" id="ch-margen"></div></div>
-      <div class="card"><h3>Percentil de valor y calidad en el tiempo</h3><div class="legend" id="leg-hist"></div><div class="chart" id="ch-hist"></div></div>
-    </div>
-    <div class="card">
-      <h3 style="margin-bottom:8px">Balance</h3>
-      <div class="tbl-wrap"><table id="tbl-bal"></table></div>
+    <div id="emp-sin" class="card muted" hidden>Todavía no están los balances de esta empresa (se bajan de la SEC una vez por semana).</div>
+    <div id="emp-con" class="stack">
+      <div class="grid g3">
+        <div class="card"><h3>Ventas por trimestre</h3><div class="chart" id="ch-ventas"></div></div>
+        <div class="card"><h3>Ganancia neta por trimestre</h3><div class="chart" id="ch-neto"></div></div>
+        <div class="card"><h3>Flujo de caja libre por trimestre</h3><div class="chart" id="ch-fcf"></div></div>
+      </div>
+      <div class="card">
+        <h3 style="margin-bottom:8px">Balance</h3>
+        <div class="tbl-wrap"><table id="tbl-bal"></table></div>
+      </div>
     </div>
   </section>
 </div>
@@ -260,7 +237,7 @@ td.monto-c{font-family:"Bricolage Grotesque",sans-serif;font-size:17px;font-weig
 <script>
 "use strict";
 const $ = s => document.querySelector(s);
-const D = {estr: null, rank: null, emp: null};
+const D = {m: null, f: {}};
 const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 
 // ---------------- formato ----------------
@@ -283,10 +260,14 @@ const corto = (v) => {
 };
 const clsSigno = v => v == null ? "" : v > 0 ? "pos" : v < 0 ? "negt" : "";
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
-const mesTxt = (ym) => { const [y, m] = ym.split("-"); return ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"][+m - 1] + " " + y; };
+const MES_N = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+const fechaLarga = (iso) => { const d = new Date(iso + "T12:00:00"); return `${d.getDate()} de ${MES_N[d.getMonth()]} de ${d.getFullYear()}`; };
+const fechaCorta = (iso) => { const d = new Date(iso + "T12:00:00"); return `${d.getDate()} de ${MES_N[d.getMonth()]}`; };
 const trimTxt = (f) => { const d = new Date(f + "T00:00:00"); return "T" + (Math.floor(d.getMonth() / 3) + 1) + " " + String(d.getFullYear()).slice(2); };
+const nombre = t => (D.m.nombres || {})[t] || (D.f[t] || {}).nombre || "";
+const pe = t => { const p = (D.f[t] || {}).pe; return p == null ? "—" : p < 0 ? '<span class="muted">pierde</span>' : num(p, 1); };
 
-// ---------------- gráficos (SVG propio) ----------------
+// ---------------- gráficos ----------------
 function tooltip(host) {
   let t = host.querySelector(".tip");
   if (!t) { t = document.createElement("div"); t.className = "tip"; host.appendChild(t); }
@@ -425,17 +406,17 @@ function leyenda(el, series) {
   el.innerHTML = series.map(s => `<span><i style="background:${s.color}"></i>${esc(s.name)}</span>`).join("");
 }
 
+
 // ---------------- pestañas ----------------
 let tabActual = "comprar";
 function mostrar(tab) {
   tabActual = tab;
   document.querySelectorAll("nav button").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === tab));
-  for (const t of ["comprar", "estrategias", "ranking", "empresa"]) $("#tab-" + t).hidden = t !== tab || !D.estr;
-  try { localStorage.setItem("fund_tab", tab); } catch (e) {}
+  for (const t of ["comprar", "historia", "empresa"]) $("#tab-" + t).hidden = t !== tab || !D.m;
+  try { localStorage.setItem("mom_tab", tab); } catch (e) {}
   dibujar();
 }
 document.querySelectorAll("nav button").forEach(b => b.addEventListener("click", () => mostrar(b.dataset.tab)));
-
 $("#tema").addEventListener("click", () => {
   const actual = document.documentElement.dataset.theme || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
   const nuevo = actual === "dark" ? "light" : "dark";
@@ -445,251 +426,114 @@ $("#tema").addEventListener("click", () => {
 });
 try { const t = localStorage.getItem("fund_tema"); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
 
-// ---------------- estrategias ----------------
-let claveSel = null;
-function veredictoChip(v) {
-  if (v === "aprobada y confirmada") return '<span class="chip ok">✓ Aprobada y confirmada</span>';
-  if (v === "aprobada pero falla en reserva") return '<span class="chip warn">! Falla en reserva</span>';
-  return '<span class="chip no">✕ No aprobada</span>';
-}
-function initEstrategias() {
-  const E = D.estr, tab = E.tabla;
-  const aprob = tab.filter(f => f.aprobada), conf = tab.filter(f => f.veredicto === "aprobada y confirmada");
-  const ra = E.referencias_anual;
-  $("#resumen").innerHTML =
-    `De <b>${tab.length} variantes</b> probadas, <b>${aprob.length}</b> le ganaron a SPY y al universo en las dos mitades del período de desarrollo` +
-    (aprob.length ? ` y <b>${conf.length}</b> lo confirmaron en el período reservado.` : `, así que el período reservado no se usó para decidir.`) +
-    ` En desarrollo, SPY rindió <b>${pct(ra.dev.SPY)}</b> anual y el universo igual ponderado <b>${pct(ra.dev.Universo)}</b>.` +
-    ` <span class="muted">Costo por operación: ${pct(E.parametros.costo_lado, 2)} por lado.</span>`;
-  const sel = $("#sel-estrategia");
-  sel.innerHTML = tab.map(f => `<option value="${esc(f.clave)}">${esc(f.clave)}</option>`).join("");
-  const mejor = [...tab].sort((a, b) => (b.aprobada - a.aprobada) || ((b.t_univ ?? -9) - (a.t_univ ?? -9)))[0];
-  claveSel = claveSel || mejor.clave;
-  sel.value = claveSel;
-  sel.onchange = () => { claveSel = sel.value; dibujar(); };
-  const p = E.periodos;
-  $("#sub-tabla").textContent = `Desarrollo 1: ${mesTxt(p.inicio)} a ${mesTxt(p.mitad)} · Desarrollo 2: hasta ${mesTxt(p.reserva)} · Reserva: ${mesTxt(p.reserva)} a ${mesTxt(p.fin)}. Diferencias anuales, netas de costos. t: qué tan lejos del azar está la ventaja sobre el universo (se pide ${num(E.parametros.t_minimo, 1)} o más).`;
-}
-function dibujarEstrategias() {
-  const E = D.estr, f = E.tabla.find(x => x.clave === claveSel);
-  const series = [
-    {name: f.estrategia + " · top " + f.top, corto: "Estrategia", values: E.curvas[claveSel], color: css("--s1"), width: 2.5},
-    {name: "SPY", values: E.referencias.SPY, color: css("--s2")},
-    {name: "Universo", values: E.referencias.Universo, color: css("--s3")},
-  ];
-  leyenda($("#leg-curva"), series);
-  const fin = v => v == null ? "—" : "US$ " + num(v, 2);
-  $("#sub-curva").innerHTML = `Neto de costos, escala logarítmica. US$ 1 de ${mesTxt(E.fechas[0])} terminó en <b>${fin(series[0].values.at(-1))}</b> contra ${fin(series[1].values.at(-1))} en SPY. ${veredictoChip(f.veredicto)}`;
-  lineChart($("#ch-curva"), {x: E.fechas, xFmt: v => v.slice(0, 4), series, log: true, endLabels: true,
-    band: {from: E.periodos.reserva, label: "Reserva"}, yFmt: v => num(v, v < 10 ? 1 : 0), tipFmt: v => "US$ " + num(v, 2), h: 340,
-    aria: "Evolución de US$ 1 en la estrategia, SPY y el universo"});
-  const cols = [
-    ["Estrategia", r => `<span class="tk">${esc(r.estrategia)}</span>`],
-    ["Top", r => r.top, "n"],
-    ["Anual dev.", r => pct(r.anual_dev), "n"],
-    ["vs SPY 1", r => `<span class="${clsSigno(r.vs_spy_1)}">${pct(r.vs_spy_1, 1, true)}</span>`, "n"],
-    ["vs SPY 2", r => `<span class="${clsSigno(r.vs_spy_2)}">${pct(r.vs_spy_2, 1, true)}</span>`, "n"],
-    ["vs univ. 1", r => `<span class="${clsSigno(r.vs_univ_1)}">${pct(r.vs_univ_1, 1, true)}</span>`, "n"],
-    ["vs univ. 2", r => `<span class="${clsSigno(r.vs_univ_2)}">${pct(r.vs_univ_2, 1, true)}</span>`, "n"],
-    ["t", r => num(r.t_univ, 2), "n"],
-    ["Sharpe defl.", r => num(r.sharpe_defl, 2), "n"],
-    ["Costo/año", r => pct(r.costo_anual, 2), "n"],
-    ["Caída máx.", r => pct(r.caida_dev, 0), "n"],
-    ["Reserva", r => r.aprobada ? pct(r.anual_reserva) : '<span class="muted">sin abrir</span>', "n"],
-    ["Veredicto", r => veredictoChip(r.veredicto)],
-  ];
-  $("#tbl-estr").innerHTML = `<thead><tr>${cols.map(c => `<th class="${c[2] || ""}">${c[0]}</th>`).join("")}</tr></thead><tbody>` +
-    E.tabla.map(r => `<tr class="click ${r.clave === claveSel ? "sel" : ""}" data-k="${esc(r.clave)}">${cols.map(c => `<td class="${c[2] || ""}">${c[1](r)}</td>`).join("")}</tr>`).join("") + "</tbody>";
-  $("#tbl-estr").querySelectorAll("tr.click").forEach(tr => tr.onclick = () => { claveSel = tr.dataset.k; $("#sel-estrategia").value = claveSel; dibujar(); });
-  $("#titulo-cartera").textContent = `Cartera que tendría hoy: ${f.estrategia} · top ${f.top}`;
-  $("#cartera").innerHTML = f.cartera_actual.length ? f.cartera_actual.map(t => `<button data-t="${esc(t)}">${esc(t)}</button>`).join("")
-    : '<span class="muted small">Ninguna empresa cumple hoy.</span>';
-  $("#cartera").querySelectorAll("button").forEach(b => b.onclick = () => irEmpresa(b.dataset.t));
-}
-
-// ---------------- ranking ----------------
-let ordenCol = "vc", ordenDesc = true;
-function initRanking() {
-  const R = D.rank;
-  $("#filtro-estr").innerHTML = '<option value="">Todas las empresas</option>' +
-    Object.keys(R.elegidas).map(k => `<option value="${esc(k)}">Elegidas por ${esc(k)}</option>`).join("");
-  $("#buscar").oninput = dibujar;
-  $("#filtro-estr").onchange = dibujar;
-  $("#orden").onchange = () => { ordenCol = $("#orden").value; ordenDesc = true; dibujar(); };
-}
-function dibujarRanking() {
-  const R = D.rank, q = $("#buscar").value.trim().toLowerCase(), fe = $("#filtro-estr").value;
-  let filas = R.filas.filter(r => (!q || r.ticker.toLowerCase().includes(q) || r.nombre.toLowerCase().includes(q)) && (!fe || r.en.includes(fe)));
-  filas.sort((a, b) => {
-    const x = a[ordenCol], y = b[ordenCol];
-    if (x == null && y == null) return 0; if (x == null) return 1; if (y == null) return -1;
-    return ordenDesc ? y - x : x - y;
-  });
-  $("#cuenta").textContent = `${filas.length} empresas · datos al ${R.fecha}`;
-  const barra = v => v == null ? "—" : `<span class="pbar"><i><b style="width:${(v * 100).toFixed(0)}%"></b></i><span class="n">${num(v * 100, 0)}</span></span>`;
-  const cols = [
-    ["#", (r, i) => `<span class="muted">${i + 1}</span>`, "n"],
-    ["Empresa", r => `<span class="tk">${esc(r.ticker)}</span> <span class="name">${esc(r.nombre)}</span>`],
-    ["Valor", r => barra(r.valor), "", "valor"],
-    ["Calidad", r => barra(r.calidad), "", "calidad"],
-    ["P/G", r => r.ey > 0 ? num(1 / r.ey, 1) : '<span class="muted">pierde</span>', "n", "ey"],
-    ["Flujo libre / precio", r => pct(r.fcfy), "n", "fcfy"],
-    ["ROE", r => pct(r.roe, 0), "n", "roe"],
-    ["Ventas a/a", r => `<span class="${clsSigno(r.crec)}">${pct(r.crec, 0, true)}</span>`, "n", "crec"],
-    ["Pasivo/activo", r => pct(r.apalanc, 0), "n", "apalanc"],
-    ["Piotroski", r => r.fscore == null ? "—" : num(r.fscore, 0) + "/9", "n", "fscore"],
-    ["Sorpresa", r => num(r.sue, 1), "n", "sue"],
-    ["Mom. 12-1", r => `<span class="${clsSigno(r.momentum)}">${pct(r.momentum, 0, true)}</span>`, "n", "momentum"],
-    ["Capitalización", r => usd(r.mktcap), "n", "mktcap"],
-    ["Elegida por", r => r.en.map(e => `<span class="chip tag">${esc(e.replace(" (control)", ""))}</span>`).join(" ")],
-  ];
-  $("#tbl-rank").innerHTML = `<thead><tr>${cols.map(c => `<th class="${c[2] || ""} ${c[3] ? "sort" : ""}" ${c[3] ? `data-c="${c[3]}"` : ""}>${c[0]}${c[3] === ordenCol ? ` <span class="arrow">${ordenDesc ? "↓" : "↑"}</span>` : ""}</th>`).join("")}</tr></thead><tbody>` +
-    filas.map((r, i) => `<tr class="click" data-t="${esc(r.ticker)}">${cols.map(c => `<td class="${c[2] || ""}">${c[1](r, i)}</td>`).join("")}</tr>`).join("") + "</tbody>";
-  $("#tbl-rank").querySelectorAll("th.sort").forEach(th => th.onclick = () => {
-    const c = th.dataset.c; ordenDesc = c === ordenCol ? !ordenDesc : true; ordenCol = c; dibujar();
-  });
-  $("#tbl-rank").querySelectorAll("tr.click").forEach(tr => tr.onclick = () => irEmpresa(tr.dataset.t));
-}
-
-// ---------------- empresa ----------------
-let tickerSel = null;
-function irEmpresa(t) { tickerSel = t; $("#sel-empresa").value = t; mostrar("empresa"); window.scrollTo({top: 0, behavior: "smooth"}); }
-function initEmpresa() {
-  const ts = Object.keys(D.emp).sort();
-  $("#sel-empresa").innerHTML = ts.map(t => `<option value="${esc(t)}">${esc(t)} · ${esc(D.emp[t].nombre)}</option>`).join("");
-  tickerSel = tickerSel || (D.rank.filas.slice().sort((a, b) => (b.vc ?? -1) - (a.vc ?? -1))[0] || {}).ticker || ts[0];
-  $("#sel-empresa").value = tickerSel;
-  $("#sel-empresa").onchange = () => { tickerSel = $("#sel-empresa").value; dibujar(); };
-}
-function dibujarEmpresa() {
-  const e = D.emp[tickerSel], r = D.rank.filas.find(x => x.ticker === tickerSel) || {};
-  if (!e) return;
-  $("#emp-titulo").textContent = `${tickerSel} · ${e.nombre}`;
-  $("#emp-sub").innerHTML = `Último trimestre informado: ${esc(r.ultimo_cierre || "—")} · <a href="https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=${e.cik}&type=10-&dateb=&owner=include&count=40" target="_blank" rel="noopener" style="color:inherit">ver presentaciones en la SEC ↗</a>`;
-  const k = [
-    ["Precio / ganancias", r.ey > 0 ? num(1 / r.ey, 1) : "pierde", "últimos 12 meses"],
-    ["Flujo libre / precio", pct(r.fcfy), "rendimiento en caja"],
-    ["ROE", pct(r.roe, 0), "ganancia / patrimonio"],
-    ["Margen bruto", pct(r.margen_bruto, 0), "margen operativo " + pct(r.margen_op, 0)],
-    ["Piotroski", r.fscore == null ? "—" : num(r.fscore, 0) + "/9", "salud del balance"],
-    ["Valor · Calidad", `${r.valor == null ? "—" : num(r.valor * 100, 0)} · ${r.calidad == null ? "—" : num(r.calidad * 100, 0)}`, "percentiles en la lista"],
-  ];
-  $("#emp-kpis").innerHTML = k.map(([l, v, h]) => `<div class="kpi"><div class="l">${l}</div><div class="v">${v}</div><div class="h">${h}</div></div>`).join("");
-  $("#emp-en").innerHTML = r.en && r.en.length ? `<span class="muted small">Hoy la elegirían:</span> ` + r.en.map(x => `<span class="chip tag">${esc(x)}</span>`).join(" ") : "";
-  const T = e.trimestres, fx = T.map(t => t.fin);
-  barChart($("#ch-ventas"), {x: fx, values: T.map(t => t.ventas), xFmt: trimTxt, nombre: "Ventas", aria: "Ventas por trimestre"});
-  barChart($("#ch-neto"), {x: fx, values: T.map(t => t.neto), xFmt: trimTxt, nombre: "Ganancia neta", aria: "Ganancia neta por trimestre"});
-  barChart($("#ch-fcf"), {x: fx, values: T.map(t => t.fcf), xFmt: trimTxt, nombre: "Flujo libre", aria: "Flujo de caja libre por trimestre"});
-  const mser = [
-    {name: "Margen bruto", values: T.map(t => t.ventas > 0 && t.bruta != null ? t.bruta / t.ventas : null), color: css("--s1")},
-    {name: "Margen operativo", values: T.map(t => t.ventas > 0 && t.operativo != null ? t.operativo / t.ventas : null), color: css("--s2")},
-  ];
-  leyenda($("#leg-margen"), mser);
-  lineChart($("#ch-margen"), {x: fx, xFmt: trimTxt, series: mser, yFmt: v => pct(v, 0), zero: true, h: 220, aria: "Márgenes por trimestre"});
-  const H = e.historia, hser = [
-    {name: "Valor", values: H.valor.map(v => v == null ? null : v * 100), color: css("--s1")},
-    {name: "Calidad", values: H.calidad.map(v => v == null ? null : v * 100), color: css("--s2")},
-  ];
-  leyenda($("#leg-hist"), hser);
-  if (H.fechas.length) lineChart($("#ch-hist"), {x: H.fechas, xFmt: mesTxt, series: hser, yMin: 0, yMax: 100, yFmt: v => num(v, 0), h: 220, aria: "Percentiles en el tiempo"});
-  else $("#ch-hist").innerHTML = '<p class="muted small">Sin historia.</p>';
-  const B = e.balance, filasB = [["Activo", "activo"], ["Pasivo", "pasivo"], ["Patrimonio", "patrimonio"], ["Caja", "caja"], ["Deuda de largo plazo", "deuda_lp"]];
-  $("#tbl-bal").innerHTML = `<thead><tr><th></th>${B.map(b => `<th class="n">${trimTxt(b.fin)}</th>`).join("")}</tr></thead><tbody>` +
-    filasB.map(([n, c]) => `<tr><td>${n}</td>${B.map(b => `<td class="n">${corto(b[c])}</td>`).join("")}</tr>`).join("") + "</tbody>";
-}
-
 // ---------------- qué comprar ----------------
-const EXPLICA = {
-  "Valor": "Compra las empresas más baratas en relación a lo que ganan, a su flujo de caja y a su patrimonio.",
-  "Calidad": "Compra las empresas más rentables y con menos deuda.",
-  "Valor + calidad": "Compra empresas que a la vez son baratas y rentables.",
-  "Piotroski en baratas": "Entre las baratas, compra las que vienen mejorando sus balances.",
-  "Sorpresa de ganancias": "Compra las empresas que acaban de presentar ganancias mucho mejores que un año antes.",
-  "Momentum 12-1 (control)": "Compra las acciones que más subieron en los últimos 12 meses (sin contar el último mes), y cada 3 meses vuelve a elegir.",
-};
-const MES_N = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
-function proximaRevision(meses, hoy) {
-  for (let k = 0; k < 13; k++) {
-    const d = new Date(hoy.getFullYear(), hoy.getMonth() + k + 1, 0);   // último día del mes
-    if (meses.includes(d.getMonth() + 1) && d >= new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate())) return d;
-  }
-  return null;
-}
-function elegirRecomendada() {
-  const tab = D.estr.tabla;
-  const ok = tab.filter(r => r.veredicto === "aprobada y confirmada").sort((a, b) => (b.t_univ ?? 0) - (a.t_univ ?? 0));
-  return ok[0] || null;
-}
 function dibujarComprar() {
-  const E = D.estr, R = D.rank, rec = elegirRecomendada();
-  const hoy = new Date(R.fecha + "T12:00:00");
-  $("#c-fecha").textContent = "Recomendación al " + hoy.toLocaleDateString("es-AR", {day: "numeric", month: "long", year: "numeric"});
-  if (!rec) {
-    $("#c-titulo").textContent = "Hoy no hay una compra recomendada: lo más sensato es SPY";
-    $("#c-regla").textContent = "Ninguna estrategia le ganó a comprar todo el mercado en las pruebas. Mientras eso no cambie, comprar el CEDEAR de SPY es la opción más simple y barata.";
-    ["#tbl-comprar", "#c-cambios", "#c-pasos", "#c-riesgos"].forEach(s => $(s).innerHTML = "");
-    $("#c-proxima").textContent = ""; $("#c-conf").innerHTML = ""; $("#c-cuenta").textContent = "";
-    return;
-  }
-  const lista = (R.elegidas[rec.estrategia] || []).slice(0, rec.top);
-  const filas = lista.map(t => R.filas.find(f => f.ticker === t) || {ticker: t, nombre: ""});
-  const meses = rec.estrategia.startsWith("Sorpresa") ? [1,2,3,4,5,6,7,8,9,10,11,12] : E.parametros.meses_rebalanceo;
-  const prox = proximaRevision(meses, hoy);
+  const M = D.m, C = M.cartera, R = M.resumen, lista = C.tickers;
+  $("#c-fecha").textContent = `Cartera elegida el ${fechaLarga(C.fecha)} · vale hasta el ${M.proxima_revision ? fechaLarga(M.proxima_revision) : "—"}`;
   $("#c-titulo").textContent = `Comprar estas ${lista.length} acciones en partes iguales`;
-  $("#c-regla").innerHTML = `<b>Por qué:</b> ${esc(EXPLICA[rec.estrategia] || rec.estrategia)} Es la única regla que pasó todas las pruebas: ` +
-    `entre ${E.periodos.inicio.slice(0, 4)} y ${E.periodos.reserva.slice(0, 4)} rindió <b>${pct(rec.anual_dev, 0)}</b> anual contra <b>${pct(E.referencias_anual.dev.SPY, 0)}</b> de SPY, ` +
-    `y en los últimos ${+E.periodos.fin.slice(0, 4) - +E.periodos.reserva.slice(0, 4)} años, que se guardaron para confirmar, <b>${pct(rec.anual_reserva, 0)}</b> contra <b>${pct(E.referencias_anual.reserva.SPY, 0)}</b>.`;
-  $("#c-proxima").textContent = prox ? `Próxima revisión: fin de ${MES_N[prox.getMonth()]}` : "";
-  // monto por acción
+  $("#c-regla").innerHTML = `<b>La regla:</b> cada 3 meses se eligen las ${M.regla.top} acciones con CEDEAR que más subieron en los últimos 12 meses (sin contar el último), ` +
+    `y se mantienen hasta la revisión siguiente. En la simulación desde ${R.desde.slice(0, 4)} rindió <b>${pct(R.anual, 0)}</b> por año contra <b>${pct(R.anual_spy, 0)}</b> de SPY, ` +
+    `aunque ese número está inflado (ver abajo).`;
   let monto = 1000;
   try { monto = +(localStorage.getItem("fund_monto") || 1000); } catch (e) {}
   const inp = $("#c-monto");
   if (document.activeElement !== inp) inp.value = monto;
   inp.oninput = () => { try { localStorage.setItem("fund_monto", inp.value); } catch (e) {} dibujarComprar(); };
   monto = +inp.value || 0;
-  const cada = lista.length ? monto / lista.length : 0, comision = monto * E.parametros.costo_lado;
-  $("#c-cuenta").textContent = `US$ ${num(cada, 0)} en cada una · costo estimado de compra US$ ${num(comision, 0)}`;
-  $("#tbl-comprar").innerHTML = `<thead><tr><th>#</th><th>Acción</th><th class="n">Subió en 12 meses</th><th class="n">Precio / ganancias</th><th class="n">Comprar</th></tr></thead><tbody>` +
-    filas.map((r, i) => `<tr class="click" data-t="${esc(r.ticker)}"><td class="n muted">${i + 1}</td>` +
-      `<td><span class="tk">${esc(r.ticker)}</span> <span class="name">${esc(r.nombre)}</span></td>` +
-      `<td class="n ${clsSigno(r.momentum)}">${pct(r.momentum, 0, true)}</td>` +
-      `<td class="n">${r.ey > 0 ? num(1 / r.ey, 1) : '<span class="muted">pierde</span>'}</td>` +
-      `<td class="monto-c">US$ ${num(cada, 0)}</td></tr>`).join("") + "</tbody>";
+  const cada = lista.length ? monto / lista.length : 0;
+  $("#c-cuenta").textContent = `US$ ${num(cada, 0)} en cada una · comisiones estimadas US$ ${num(monto * M.regla.costo_lado, 0)}`;
+  $("#c-proxima").textContent = M.proxima_revision ? `Próxima revisión: ${fechaCorta(M.proxima_revision)}` : "";
+  // cambios
+  const K = M.cambios;
+  $("#c-cambios-fecha").textContent = K.desde ? `${fechaCorta(C.fecha)} (antes: ${fechaCorta(K.desde)})` : "";
+  $("#c-cambios").innerHTML = !K.desde ? '<span class="muted">Es la primera cartera.</span>' :
+    (K.salen.length || K.entran.length)
+      ? `<div class="row">${K.salen.map(t => `<span class="chip out">Vender ${esc(t)}</span>`).join(" ")} ${K.entran.map(t => `<span class="chip ok">Comprar ${esc(t)}</span>`).join(" ")}</div>` +
+        `<p class="muted small" style="margin:10px 0 0">Si ya tenías la cartera anterior, solo hacé estos cambios. Las demás se quedan como están.</p>`
+      : '<span class="muted">No cambió nada: se mantienen las mismas.</span>';
+  // tabla
+  $("#tbl-comprar").innerHTML = `<thead><tr><th>#</th><th>Acción</th><th class="n">Había subido en 12 meses</th><th class="n">Desde que se eligió</th><th class="n">Precio / ganancias</th><th class="n">Comprar</th></tr></thead><tbody>` +
+    lista.map((t, i) => `<tr class="click" data-t="${esc(t)}"><td class="n muted">${i + 1}</td>` +
+      `<td><span class="tk">${esc(t)}</span> <span class="name">${esc(nombre(t))}</span></td>` +
+      `<td class="n pos">${pct(C.momentum_eleccion[t], 0, true)}</td>` +
+      `<td class="n ${clsSigno(C.desde_eleccion[t])}">${pct(C.desde_eleccion[t], 1, true)}</td>` +
+      `<td class="n">${pe(t)}</td><td class="monto-c">US$ ${num(cada, 0)}</td></tr>`).join("") + "</tbody>";
   $("#tbl-comprar").querySelectorAll("tr.click").forEach(tr => tr.onclick = () => irEmpresa(tr.dataset.t));
-  // cambios respecto de la última lista vista en este navegador
-  let previa = null;
-  try { previa = JSON.parse(localStorage.getItem("fund_lista") || "null"); } catch (e) {}
-  if (previa && previa.estrategia === rec.clave && previa.fecha !== R.fecha) {
-    const salen = previa.lista.filter(t => !lista.includes(t)), entran = lista.filter(t => !previa.lista.includes(t));
-    $("#c-cambios").innerHTML = salen.length || entran.length
-      ? `<div class="row small"><b>Cambios desde el ${esc(previa.fecha)}:</b> ${salen.map(t => `<span class="chip out">Vender ${esc(t)}</span>`).join(" ")} ${entran.map(t => `<span class="chip ok">Comprar ${esc(t)}</span>`).join(" ")}</div>`
-      : `<div class="muted small">Sin cambios desde el ${esc(previa.fecha)}: mantené las mismas.</div>`;
-  } else {
-    $("#c-cambios").innerHTML = "";
-    try { if (!previa || previa.fecha !== R.fecha || previa.estrategia !== rec.clave) localStorage.setItem("fund_lista", JSON.stringify({fecha: R.fecha, estrategia: rec.clave, lista})); } catch (e) {}
-  }
+  const vals = Object.values(C.desde_eleccion).filter(v => v != null), prom = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+  $("#c-desde").innerHTML = `Desde el ${fechaCorta(C.fecha)} la cartera va <b class="${clsSigno(prom)}">${pct(prom, 1, true)}</b> en promedio, y SPY <b class="${clsSigno(C.spy_desde_eleccion)}">${pct(C.spy_desde_eleccion, 1, true)}</b>. Precios al ${fechaCorta(M.precios_al)}.`;
   $("#c-pasos").innerHTML = [
     `Comprá los CEDEARs de la lista, más o menos el mismo monto en dólares en cada uno.`,
-    `No hagas nada hasta la próxima revisión${prox ? ` (fin de ${MES_N[prox.getMonth()]})` : ""}: corré el laboratorio en Colab y volvé a esta página.`,
-    `En cada revisión: vendé las que salieron de la lista y comprá las que entraron. Las que siguen, no las toques.`,
-    `Si una acción no tiene CEDEAR en tu broker, salteala y repartí entre las demás.`,
+    `No toques nada hasta la próxima revisión${M.proxima_revision ? ` (${fechaCorta(M.proxima_revision)})` : ""}. La página se actualiza sola y te llega un mail cuando cambia la cartera.`,
+    `En cada revisión, vendé las que salieron y comprá las que entraron. Las que siguen, no las toques.`,
+    `Si alguna no tiene CEDEAR en tu broker, salteala y repartí entre las demás.`,
   ].map(x => `<li>${x}</li>`).join("");
-  const baja = (rec.sharpe_defl ?? 0) < 0.5 || (rec.t_univ ?? 0) < 2.5;
-  $("#c-conf").innerHTML = baja ? '<span class="chip warn">Media-baja</span>' : '<span class="chip ok">Buena</span>';
   $("#c-riesgos").innerHTML = [
-    `En el peor momento de la prueba llegó a perder <b>${pct(-rec.caida_dev, 0)}</b> desde su máximo. Hay que poder aguantar eso sin vender.`,
-    `Los resultados del pasado están inflados: la prueba usa empresas que hoy existen, y las que quebraron no aparecen. El rendimiento real probablemente sea bastante menor.`,
-    baja ? `Pasó las pruebas con poco margen, y se probaron ${E.tabla.length} reglas distintas para encontrarla. Puede haber sido en parte suerte.` : `Pasó las pruebas con margen, aun contando las ${E.tabla.length} reglas probadas.`,
-    `Concentra el riesgo: hoy la lista está dominada por pocos sectores. Usala para una parte de la cartera, no para todo.`,
+    `Puede caer fuerte: en la simulación llegó a perder <b>${pct(-R.caida_max, 0)}</b> desde su máximo (SPY, ${pct(-R.caida_max_spy, 0)}), y tuvo ${R.anios_perdedores} años en negativo de ${R.anios}.`,
+    `Los resultados pasados están inflados: la simulación usa empresas que hoy existen y conocemos. En la realidad, esperá bastante menos.`,
+    `Compra lo que más subió, así que suele quedar concentrada en pocos sectores. Usala para una parte de la cartera, no para toda.`,
   ].map(x => `<li>${x}</li>`).join("");
+  // candidatas
+  $("#tbl-cand").innerHTML = `<thead><tr><th>#</th><th>Acción</th><th class="n">Subió en 12 meses</th><th class="n">Precio / ganancias</th><th></th></tr></thead><tbody>` +
+    M.candidatas.map((c, i) => `<tr class="click" data-t="${esc(c.ticker)}"><td class="n muted">${i + 1}</td>` +
+      `<td><span class="tk">${esc(c.ticker)}</span> <span class="name">${esc(nombre(c.ticker))}</span></td>` +
+      `<td class="n ${clsSigno(c.momentum)}">${pct(c.momentum, 0, true)}</td><td class="n">${pe(c.ticker)}</td>` +
+      `<td>${c.en_cartera ? '<span class="chip tag">En cartera</span>' : (i < M.regla.top ? '<span class="chip ok">Entraría</span>' : "")}</td></tr>`).join("") + "</tbody>";
+  $("#tbl-cand").querySelectorAll("tr.click").forEach(tr => tr.onclick = () => irEmpresa(tr.dataset.t));
+}
+
+// ---------------- historia ----------------
+function dibujarHistoria() {
+  const M = D.m, Cv = M.curva, R = M.resumen;
+  $("#h-desde").textContent = R.desde.slice(0, 4);
+  const series = [
+    {name: "Momentum", values: Cv.estrategia, color: css("--s1"), width: 2.5},
+    {name: "SPY", values: Cv.spy, color: css("--s2")},
+  ];
+  leyenda($("#h-leg"), series);
+  lineChart($("#h-curva"), {x: Cv.fechas, xFmt: v => v.slice(0, 4), series, log: true, endLabels: true, h: 340,
+    yFmt: v => num(v, v < 10 ? 1 : 0), tipFmt: v => "US$ " + num(v, 2), aria: "Evolución de US$ 1 en momentum y en SPY"});
+  const fin = a => a[a.length - 1];
+  const k = [
+    ["US$ 1.000 se hacían", "US$ " + num(fin(Cv.estrategia) * 1000, 0), `en SPY: US$ ${num(fin(Cv.spy) * 1000, 0)}`],
+    ["Por año", pct(R.anual, 1), `SPY: ${pct(R.anual_spy, 1)}`],
+    ["Últimos 5 años, por año", pct(R.anual_5, 1), `SPY: ${pct(R.anual_spy_5, 1)}`],
+    ["Peor caída", pct(R.caida_max, 0), `SPY: ${pct(R.caida_max_spy, 0)}`],
+    ["Años en negativo", `${R.anios_perdedores} de ${R.anios}`, "años calendario"],
+  ];
+  $("#h-kpis").innerHTML = k.map(([l, v, h]) => `<div class="kpi"><div class="l">${l}</div><div class="v">${v}</div><div class="h">${h}</div></div>`).join("");
+  $("#tbl-hist").innerHTML = `<thead><tr><th>Revisión</th><th>Cartera elegida</th></tr></thead><tbody>` +
+    M.historial.slice().reverse().map(h => `<tr><td class="n" style="text-align:left">${esc(h.fecha)}</td><td style="white-space:normal">${h.tickers.map(t => `<span class="chip tag">${esc(t)}</span>`).join(" ")}</td></tr>`).join("") + "</tbody>";
+}
+
+// ---------------- empresa ----------------
+let tickerSel = null;
+function irEmpresa(t) { tickerSel = t; mostrar("empresa"); window.scrollTo({top: 0, behavior: "smooth"}); }
+function dibujarEmpresa() {
+  const M = D.m, ts = [...new Set([...M.cartera.tickers, ...M.candidatas.map(c => c.ticker)])];
+  tickerSel = tickerSel && ts.includes(tickerSel) ? tickerSel : ts[0];
+  const sel = $("#sel-empresa");
+  sel.innerHTML = ts.map(t => `<option value="${esc(t)}">${esc(t)}${nombre(t) ? " · " + esc(nombre(t)) : ""}${M.cartera.tickers.includes(t) ? " (en cartera)" : ""}</option>`).join("");
+  sel.value = tickerSel;
+  sel.onchange = () => { tickerSel = sel.value; dibujarEmpresa(); };
+  const e = D.f[tickerSel];
+  $("#emp-titulo").textContent = `${tickerSel}${nombre(tickerSel) ? " · " + nombre(tickerSel) : ""}`;
+  $("#emp-sin").hidden = !!e; $("#emp-con").hidden = !e;
+  if (!e) { $("#emp-sub").textContent = ""; return; }
+  $("#emp-sub").innerHTML = `Precio / ganancias: ${pe(tickerSel)} · <a href="https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=${e.cik}&type=10-&dateb=&owner=include&count=40" target="_blank" rel="noopener" style="color:inherit">presentaciones en la SEC ↗</a>`;
+  const T = e.trimestres, fx = T.map(t => t.fin);
+  barChart($("#ch-ventas"), {x: fx, values: T.map(t => t.ventas), xFmt: trimTxt, nombre: "Ventas", aria: "Ventas por trimestre"});
+  barChart($("#ch-neto"), {x: fx, values: T.map(t => t.neto), xFmt: trimTxt, nombre: "Ganancia neta", aria: "Ganancia neta por trimestre"});
+  barChart($("#ch-fcf"), {x: fx, values: T.map(t => t.fcf), xFmt: trimTxt, nombre: "Flujo libre", aria: "Flujo de caja libre por trimestre"});
+  const B = e.balance, filasB = [["Activo", "activo"], ["Pasivo", "pasivo"], ["Patrimonio", "patrimonio"], ["Caja", "caja"], ["Deuda de largo plazo", "deuda_lp"]];
+  $("#tbl-bal").innerHTML = `<thead><tr><th></th>${B.map(b => `<th class="n">${trimTxt(b.fin)}</th>`).join("")}</tr></thead><tbody>` +
+    filasB.map(([n, c]) => `<tr><td>${n}</td>${B.map(b => `<td class="n">${corto(b[c])}</td>`).join("")}</tr>`).join("") + "</tbody>";
 }
 
 // ---------------- arranque ----------------
 function dibujar() {
-  if (!D.estr) return;
+  if (!D.m) return;
   if (tabActual === "comprar") dibujarComprar();
-  if (tabActual === "estrategias") dibujarEstrategias();
-  if (tabActual === "ranking") dibujarRanking();
+  if (tabActual === "historia") dibujarHistoria();
   if (tabActual === "empresa") dibujarEmpresa();
 }
 let rz; addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(dibujar, 150); });
@@ -697,15 +541,12 @@ let rz; addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(dib
 async function cargar() {
   const v = "?v=" + Date.now();
   try {
-    const [a, b, c] = await Promise.all(["estrategias", "ranking", "empresas"].map(n => fetch("data/" + n + ".json" + v).then(r => { if (!r.ok) throw new Error(n); return r.json(); })));
-    D.estr = a; D.rank = b; D.emp = c;
-  } catch (e) {
-    $("#vacio").hidden = false; return;
-  }
-  $("#generado").textContent = "Actualizado " + D.estr.generado;
-  initEstrategias(); initRanking(); initEmpresa();
-  let t = "comprar"; try { t = localStorage.getItem("fund_tab") || t; } catch (e) {}
-  mostrar(t);
+    D.m = await fetch("data/momentum.json" + v).then(r => { if (!r.ok) throw new Error(); return r.json(); });
+  } catch (e) { $("#vacio").hidden = false; return; }
+  try { D.f = await fetch("data/fichas.json" + v).then(r => r.ok ? r.json() : {}); } catch (e) { D.f = {}; }
+  $("#generado").textContent = "Actualizado " + D.m.generado;
+  let t = "comprar"; try { t = localStorage.getItem("mom_tab") || t; } catch (e) {}
+  mostrar(["comprar", "historia", "empresa"].includes(t) ? t : "comprar");
 }
 cargar();
 </script>

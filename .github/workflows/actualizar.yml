@@ -1,0 +1,55 @@
+name: Actualizar dashboard
+
+on:
+  schedule:
+    # lunes a viernes después del cierre de Nueva York (22:17 UTC = 19:17 en Argentina)
+    - cron: "17 22 * * 1-5"
+  workflow_dispatch: {}
+  push:
+    branches: [main]
+    paths:
+      - "scripts/**"
+      - "config.json"
+      - ".github/workflows/actualizar.yml"
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: actualizar
+  cancel-in-progress: false
+
+jobs:
+  actualizar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar dependencias
+        run: pip install -q pandas numpy requests
+
+      - name: Calcular cartera y balances
+        env:
+          SEC_USER_AGENT: ${{ secrets.SEC_USER_AGENT }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python scripts/actualizar.py
+
+      - name: Commitear datos si cambiaron
+        run: |
+          # autor = dueño de la cuenta de Vercel (el plan Hobby solo despliega sus commits en repos privados)
+          git config user.name "MatiasW380"
+          git config user.email "222611386+MatiasW380@users.noreply.github.com"
+          git add data/
+          if git diff --cached --quiet; then
+            echo "Sin cambios en los datos."
+          else
+            git commit -m "datos: actualización $(date -u +'%Y-%m-%d %H:%M') UTC"
+            git pull --rebase origin main
+            git push
+          fi
