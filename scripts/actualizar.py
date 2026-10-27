@@ -65,14 +65,17 @@ def r4(x, d=4):
     return round(x, d) if np.isfinite(x) else None
 
 
-# ============================================================ precios (Yahoo, velas mensuales)
+# ============================================================ precios (Yahoo, diarios agrupados por mes)
 def yahoo_mensual(t, intentos=3):
+    """Cierres diarios ajustados (dividendos y splits) -> último cierre de cada mes. Las velas mensuales de Yahoo
+    a veces vienen corridas o duplicadas, por eso se arma desde los diarios, igual que en el laboratorio."""
     url = f"https://query1.finance.yahoo.com/v8/finance/chart/{t}"
-    params = {"range": "max", "interval": "1mo", "events": "div,splits", "includeAdjustedClose": "true"}
+    params = {"period1": int(pd.Timestamp("2008-01-01").timestamp()), "period2": int(time.time()) + 86400,
+              "interval": "1d", "events": "div,splits", "includeAdjustedClose": "true"}
     ultimo = None
     for k in range(intentos):
         try:
-            r = SES.get(url, params=params, timeout=30, headers={"User-Agent": "Mozilla/5.0 (fundamentales)"})
+            r = SES.get(url, params=params, timeout=40, headers={"User-Agent": "Mozilla/5.0 (fundamentales)"})
             if r.status_code == 200:
                 res = (r.json().get("chart") or {}).get("result") or []
                 if not res:
@@ -82,12 +85,16 @@ def yahoo_mensual(t, intentos=3):
                 adj = (((res.get("indicators") or {}).get("adjclose") or [{}])[0]).get("adjclose") or []
                 if not ts or not adj:
                     return None
-                idx = pd.to_datetime(ts, unit="s").to_period("M").to_timestamp("M")
-                s = pd.Series(adj, index=idx, dtype=float).dropna()
-                s = s[~s.index.duplicated(keep="last")]
                 meta = res.get("meta") or {}
-                return {"serie": s, "precio": meta.get("regularMarketPrice"),
-                        "fecha": meta.get("regularMarketTime")}
+                off = int(meta.get("gmtoffset") or 0)
+                dias = pd.to_datetime(np.array(ts) + off, unit="s").normalize()
+                d = pd.Series(adj, index=dias, dtype=float).dropna()
+                d = d[~d.index.duplicated(keep="last")].sort_index()
+                try:
+                    s = d.resample("ME").last()
+                except ValueError:
+                    s = d.resample("M").last()
+                return {"serie": s.dropna(), "precio": meta.get("regularMarketPrice"), "ultimo_dia": d.index[-1]}
             ultimo = r.status_code
             if r.status_code == 404:
                 return None
@@ -291,8 +298,7 @@ def main():
     global CEDEARS_OK
     A, info = bajar_precios()
     CEDEARS_OK = [t for t in CEDEARS if t in A.columns]
-    ult_ts = (info["SPY"].get("fecha") or 0)
-    ult_dia = pd.Timestamp(datetime.fromtimestamp(ult_ts, timezone.utc).date()) if ult_ts else pd.Timestamp(AHORA.date())
+    ult_dia = info["SPY"]["ultimo_dia"]
     # un mes está "completo" cuando ya cerró su último día hábil
     completos = [d for d in A.index if ult_dia >= ultimo_habil(d)]
     S, historial, mom = simular(A, completos)
