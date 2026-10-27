@@ -147,8 +147,7 @@ h1{font-size:clamp(34px,6vw,52px)}
 .resumen .l{font-size:13px;color:var(--ink-2)}
 .tiles{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
 @media (max-width:1100px){.tiles{grid-template-columns:repeat(3,minmax(0,1fr))}}
-.tile{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px 16px 14px;cursor:pointer;display:flex;flex-direction:column;gap:2px;transition:border-color .15s,transform .15s;text-align:left;font:inherit;color:inherit}
-.tile:hover{border-color:var(--ink-3);transform:translateY(-1px)}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px 16px 14px;display:flex;flex-direction:column;gap:2px}
 .tile .top{display:flex;justify-content:space-between;align-items:center}
 .tile .rk{font-size:12px;color:var(--ink-3);font-family:"JetBrains Mono",monospace}
 .tile .peso{font-size:12px;font-weight:600;color:var(--ink-2);background:var(--surface-2);border-radius:999px;padding:1px 8px}
@@ -192,7 +191,6 @@ h1{font-size:clamp(34px,6vw,52px)}
   <header>
     <div>
       <h1>Momentum</h1>
-      <div class="sub" id="sub"></div>
     </div>
     <div class="top-actions">
       <button class="icon-btn" id="tema" title="Cambiar tema" aria-label="Cambiar tema" style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;padding:0"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M8 1.5a6.5 6.5 0 0 1 0 13z" fill="currentColor"/></svg></button>
@@ -202,7 +200,6 @@ h1{font-size:clamp(34px,6vw,52px)}
   <nav role="tablist">
     <button role="tab" data-tab="cartera" aria-selected="true">Cartera</button>
     <button role="tab" data-tab="historia" aria-selected="false">Cómo le fue</button>
-    <button role="tab" data-tab="empresa" aria-selected="false">Empresa</button>
   </nav>
 
   <div id="vacio" class="card empty" hidden>
@@ -248,31 +245,6 @@ h1{font-size:clamp(34px,6vw,52px)}
     </div>
   </section>
 
-  <!-- ===================== EMPRESA ===================== -->
-  <section id="tab-empresa" class="stack" hidden>
-    <div class="card">
-      <div class="row">
-        <div>
-          <h2 id="emp-titulo">—</h2>
-          <div class="muted small" id="emp-sub"></div>
-        </div>
-        <span class="spacer"></span>
-        <select id="sel-empresa" aria-label="Empresa"></select>
-      </div>
-    </div>
-    <div id="emp-sin" class="card muted" hidden>Todavía no están los balances de esta empresa (se bajan de la SEC una vez por semana).</div>
-    <div id="emp-con" class="stack">
-      <div class="grid g3">
-        <div class="card"><h3>Ventas por trimestre</h3><div class="chart" id="ch-ventas"></div></div>
-        <div class="card"><h3>Ganancia neta por trimestre</h3><div class="chart" id="ch-neto"></div></div>
-        <div class="card"><h3>Flujo de caja libre por trimestre</h3><div class="chart" id="ch-fcf"></div></div>
-      </div>
-      <div class="card">
-        <h3 style="margin-bottom:8px">Balance</h3>
-        <div class="tbl-wrap"><table id="tbl-bal"></table></div>
-      </div>
-    </div>
-  </section>
 </div>
 
 <script>
@@ -456,7 +428,7 @@ const topSel = () => String(V().cartera.tickers.length);
 function mostrar(tab) {
   tabActual = tab;
   document.querySelectorAll("nav button").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === tab));
-  for (const t of ["cartera", "historia", "empresa"]) $("#tab-" + t).hidden = t !== tab || !D.m;
+  for (const t of ["cartera", "historia"]) $("#tab-" + t).hidden = t !== tab || !D.m;
   try { localStorage.setItem("mom_tab2", tab); } catch (e) {}
   dibujar();
 }
@@ -491,7 +463,7 @@ function dibujarCartera() {
   $("#t-sub").textContent = `${pct(1 / lista.length, 0)} en cada una`;
   $("#tiles").innerHTML = lista.map((t, i) => {
     const d = C.desde_eleccion[t], di = (C.desde_ingreso || {})[t] ?? d, ing = (C.ingreso || {})[t] || C.fecha;
-    return `<button class="tile" data-t="${esc(t)}">
+    return `<div class="tile">
       <div class="top"><span class="rk">${String(i + 1).padStart(2, "0")}</span><span class="peso">${pct(1 / lista.length, 0)}</span></div>
       <div class="tk">${esc(t)}</div><div class="nm">${esc(nombre(t))}</div>
       <div class="met">
@@ -499,9 +471,8 @@ function dibujarCartera() {
         <div>en cartera<b class="${clsSigno(di)}">${pct(di, 1, true)}</b><i>desde ${mesAnio(ing)}</i></div>
         <div>últ. revisión<b class="${clsSigno(d)}">${pct(d, 1, true)}</b></div>
       </div>
-    </button>`;
+    </div>`;
   }).join("");
-  $("#tiles").querySelectorAll(".tile").forEach(b => b.onclick = () => irEmpresa(b.dataset.t));
   const vals = lista.map(t => C.desde_eleccion[t]).filter(x => x != null), prom = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
   $("#resumen").innerHTML = `<span class="l">Desde el ${fechaCorta(C.fecha)}</span>` +
     `<span><span class="v ${clsSigno(prom)}">${pct(prom, 1, true)}</span> <span class="l">cartera</span></span>` +
@@ -548,36 +519,11 @@ function dibujarHistoria() {
     v.historial.slice().reverse().map(h => `<tr><td>${fechaMed(h.fecha)}</td><td style="white-space:normal">${h.tickers.map(t => `<span class="chip tag">${esc(t)}</span>`).join(" ")}</td></tr>`).join("") + "</tbody>";
 }
 
-// ---------------- empresa ----------------
-let tickerSel = null;
-function irEmpresa(t) { tickerSel = t; mostrar("empresa"); window.scrollTo({top: 0, behavior: "smooth"}); }
-function dibujarEmpresa() {
-  const M = D.m, lista = V().cartera.tickers, ts = [...new Set([...lista, ...M.candidatas.map(c => c.ticker)])];
-  tickerSel = tickerSel && ts.includes(tickerSel) ? tickerSel : ts[0];
-  const sel = $("#sel-empresa");
-  sel.innerHTML = ts.map(t => `<option value="${esc(t)}">${esc(t)}${nombre(t) ? " · " + esc(nombre(t)) : ""}${lista.includes(t) ? " (en cartera)" : ""}</option>`).join("");
-  sel.value = tickerSel;
-  sel.onchange = () => { tickerSel = sel.value; dibujarEmpresa(); };
-  const e = D.f[tickerSel];
-  $("#emp-titulo").textContent = `${tickerSel}${nombre(tickerSel) ? " · " + nombre(tickerSel) : ""}`;
-  $("#emp-sin").hidden = !!e; $("#emp-con").hidden = !e;
-  if (!e) { $("#emp-sub").textContent = ""; return; }
-  $("#emp-sub").innerHTML = `Precio / ganancias: ${pe(tickerSel)} · <a href="https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=${e.cik}&type=10-&dateb=&owner=include&count=40" target="_blank" rel="noopener" style="color:inherit">presentaciones en la SEC ↗</a>`;
-  const T = e.trimestres, fx = T.map(t => t.fin);
-  barChart($("#ch-ventas"), {x: fx, values: T.map(t => t.ventas), xFmt: trimTxt, nombre: "Ventas", aria: "Ventas por trimestre"});
-  barChart($("#ch-neto"), {x: fx, values: T.map(t => t.neto), xFmt: trimTxt, nombre: "Ganancia neta", aria: "Ganancia neta por trimestre"});
-  barChart($("#ch-fcf"), {x: fx, values: T.map(t => t.fcf), xFmt: trimTxt, nombre: "Flujo libre", aria: "Flujo de caja libre por trimestre"});
-  const B = e.balance, filasB = [["Activo", "activo"], ["Pasivo", "pasivo"], ["Patrimonio", "patrimonio"], ["Caja", "caja"], ["Deuda de largo plazo", "deuda_lp"]];
-  $("#tbl-bal").innerHTML = `<thead><tr><th></th>${B.map(b => `<th class="n">${trimTxt(b.fin)}</th>`).join("")}</tr></thead><tbody>` +
-    filasB.map(([n, c]) => `<tr><td>${n}</td>${B.map(b => `<td class="n">${corto(b[c])}</td>`).join("")}</tr>`).join("") + "</tbody>";
-}
-
 // ---------------- arranque ----------------
 function dibujar() {
   if (!D.m) return;
   if (tabActual === "cartera") dibujarCartera();
   if (tabActual === "historia") dibujarHistoria();
-  if (tabActual === "empresa") dibujarEmpresa();
 }
 let rz; addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(dibujar, 150); });
 
@@ -588,9 +534,8 @@ async function cargar() {
     if (!D.m.variantes) throw new Error();
   } catch (e) { $("#vacio").hidden = false; return; }
   try { D.f = await fetch("data/fichas.json" + q).then(r => r.ok ? r.json() : {}); } catch (e) { D.f = {}; }
-  $("#sub").textContent = `Las acciones con CEDEAR que más subieron en el último año · actualizado ${D.m.generado.slice(8, 10)}/${D.m.generado.slice(5, 7)} ${D.m.generado.slice(11)}`;
   let t = "cartera"; try { t = localStorage.getItem("mom_tab2") || t; } catch (e) {}
-  mostrar(["cartera", "historia", "empresa"].includes(t) ? t : "cartera");
+  mostrar(["cartera", "historia"].includes(t) ? t : "cartera");
 }
 cargar();
 </script>
