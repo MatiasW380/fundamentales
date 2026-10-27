@@ -144,7 +144,7 @@ h1{font-size:clamp(34px,6vw,52px)}
 .resumen{display:flex;flex-wrap:wrap;gap:10px 28px;align-items:baseline;margin:6px 2px 0}
 .resumen .v{font-family:"Bricolage Grotesque",sans-serif;font-size:22px;font-weight:700;letter-spacing:-.02em}
 .resumen .l{font-size:13px;color:var(--ink-2)}
-.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(205px,1fr));gap:12px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(225px,1fr));gap:12px}
 .tile{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px 16px 14px;cursor:pointer;display:flex;flex-direction:column;gap:2px;transition:border-color .15s,transform .15s;text-align:left;font:inherit;color:inherit}
 .tile:hover{border-color:var(--ink-3);transform:translateY(-1px)}
 .tile .top{display:flex;justify-content:space-between;align-items:center}
@@ -155,7 +155,10 @@ h1{font-size:clamp(34px,6vw,52px)}
 .tile .met{display:flex;justify-content:space-between;margin-top:12px;padding-top:10px;border-top:1px solid var(--grid);font-size:12px;color:var(--ink-3)}
 .tile .met b{display:block;font-family:"JetBrains Mono",monospace;font-size:14px;font-weight:500;color:var(--ink)}
 .tile .met b.pos{color:var(--good)} .tile .met b.negt{color:var(--bad)}
-.tile .met div+div{text-align:right}
+.tile .met{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.tile .met div:nth-child(2){text-align:center}
+.tile .met div:nth-child(3){text-align:right}
+.tile .met i{display:block;font-style:normal;font-size:11px;color:var(--ink-3)}
 .ss{display:none}
 .tile{min-width:0}
 .sec-t{display:flex;align-items:baseline;gap:10px;margin:8px 2px 12px}
@@ -291,6 +294,7 @@ const MES_C = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov"
 const MES_N = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
 const dt = iso => new Date(iso + "T12:00:00");
 const fechaMed = iso => { const d = dt(iso); return `${d.getDate()} ${MES_C[d.getMonth()]} ${d.getFullYear()}`; };
+const mesAnio = iso => { const d = dt(iso); return `${MES_C[d.getMonth()]} ${String(d.getFullYear()).slice(2)}`; };
 const fechaCorta = iso => { const d = dt(iso); return `${d.getDate()} de ${MES_N[d.getMonth()]}`; };
 const trimTxt = (f) => { const d = new Date(f + "T00:00:00"); return "T" + (Math.floor(d.getMonth() / 3) + 1) + " " + String(d.getFullYear()).slice(2); };
 const nombre = t => (D.m.nombres || {})[t] || (D.f[t] || {}).nombre || "";
@@ -486,11 +490,15 @@ function dibujarCartera() {
   $("#t-cartera").textContent = `Cartera de ${lista.length}`;
   $("#t-sub").textContent = `${pct(1 / lista.length, 0)} en cada una`;
   $("#tiles").innerHTML = lista.map((t, i) => {
-    const d = C.desde_eleccion[t];
+    const d = C.desde_eleccion[t], di = (C.desde_ingreso || {})[t] ?? d, ing = (C.ingreso || {})[t] || C.fecha;
     return `<button class="tile" data-t="${esc(t)}">
       <div class="top"><span class="rk">${String(i + 1).padStart(2, "0")}</span><span class="peso">${pct(1 / lista.length, 0)}</span></div>
       <div class="tk">${esc(t)}</div><div class="nm">${esc(nombre(t))}</div>
-      <div class="met"><div>12 meses<b class="pos">${pct(C.momentum_eleccion[t], 0, true)}</b></div><div><span class="hs">desde la revisión</span><span class="ss">desde rev.</span><b class="${clsSigno(d)}">${pct(d, 1, true)}</b></div></div>
+      <div class="met">
+        <div>12 meses<b class="pos">${pct(C.momentum_eleccion[t], 0, true)}</b></div>
+        <div>en cartera<b class="${clsSigno(di)}">${pct(di, 1, true)}</b><i>${ing ? "desde " + mesAnio(ing) : ""}</i></div>
+        <div><span class="hs">últ. revisión</span><span class="ss">últ. rev.</span><b class="${clsSigno(d)}">${pct(d, 1, true)}</b></div>
+      </div>
     </button>`;
   }).join("");
   $("#tiles").querySelectorAll(".tile").forEach(b => b.onclick = () => irEmpresa(b.dataset.t));

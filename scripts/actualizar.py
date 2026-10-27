@@ -315,11 +315,21 @@ def main():
         anterior = historial[-2] if len(historial) > 1 else {"fecha": None, "tickers": []}
         f0 = pd.Timestamp(vigente["fecha"])
         desde = {t: r4(ult[t] / A.at[f0, t] - 1) for t in vigente["tickers"] if t in A.columns}
+        # ingreso: primera revisión de la racha actual en la que la acción está en cartera sin interrupción
+        ingreso = {}
+        for t in vigente["tickers"]:
+            f = vigente["fecha"]
+            for h in reversed(historial):
+                if t not in h["tickers"]:
+                    break
+                f = h["fecha"]
+            ingreso[t] = f
+        desde_ingreso = {t: r4(ult[t] / A.at[pd.Timestamp(f), t] - 1) for t, f in ingreso.items() if t in A.columns}
         ult5 = S.index >= S.index[-1] - pd.DateOffset(years=5)
         revision_actual = vigente["fecha"]
         variantes[str(top)] = {
             "cartera": {"fecha": vigente["fecha"], "tickers": vigente["tickers"], "momentum_eleccion": vigente["momentum"],
-                        "desde_eleccion": desde, "spy_desde_eleccion": r4(ult["SPY"] / A.at[f0, "SPY"] - 1)},
+                        "desde_eleccion": desde, "ingreso": ingreso, "desde_ingreso": desde_ingreso, "spy_desde_eleccion": r4(ult["SPY"] / A.at[f0, "SPY"] - 1)},
             "cambios": {"desde": anterior["fecha"], "salen": [t for t in anterior["tickers"] if t not in vigente["tickers"]],
                         "entran": [t for t in vigente["tickers"] if t not in anterior["tickers"]]},
             "historial": historial[-12:],
