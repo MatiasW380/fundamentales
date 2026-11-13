@@ -369,6 +369,15 @@ def main():
     Dd = pd.DataFrame({t: info[t]["diario"] for t in info}).sort_index()
     Dd = Dd[Dd.index <= ult_dia]
     spy_d = Dd["SPY"].ffill().dropna()
+
+    def var_dia(t):
+        """Variación del último día hábil (cierre ajustado de ult_dia vs. el cierre anterior)."""
+        if t not in Dd:
+            return None
+        x = Dd[t].dropna()
+        if len(x) < 2 or x.index[-1] != ult_dia:
+            return None
+        return r4(x.iloc[-1] / x.iloc[-2] - 1)
     for top in TOPS:
         S, historial, mom = simular(A, completos, top)
         if not historial:
@@ -393,7 +402,8 @@ def main():
         variantes[str(top)] = {
             "periodos": periodos(v_d, spy_d, ult_dia) if v_d is not None else [],
             "cartera": {"fecha": vigente["fecha"], "tickers": vigente["tickers"], "momentum_eleccion": vigente["momentum"],
-                        "desde_eleccion": desde, "ingreso": ingreso, "desde_ingreso": desde_ingreso, "spy_desde_eleccion": r4(ult["SPY"] / A.at[f0, "SPY"] - 1)},
+                        "desde_eleccion": desde, "ingreso": ingreso, "desde_ingreso": desde_ingreso, "spy_desde_eleccion": r4(ult["SPY"] / A.at[f0, "SPY"] - 1),
+                        "dia": {t: var_dia(t) for t in vigente["tickers"]}, "spy_dia": var_dia("SPY")},
             "cambios": {"desde": anterior["fecha"], "salen": [t for t in anterior["tickers"] if t not in vigente["tickers"]],
                         "entran": [t for t in vigente["tickers"] if t not in anterior["tickers"]]},
             "historial": historial[-12:],

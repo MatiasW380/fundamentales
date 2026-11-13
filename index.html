@@ -162,6 +162,9 @@ h1{font-size:clamp(34px,6vw,52px)}
 .tile .met i{display:block;font-style:normal;font-size:11px;color:var(--ink-3)}
 .ss{display:none}
 .tile{min-width:0}
+.tile .dia{display:flex;align-items:baseline;gap:6px;margin-top:8px;font-size:12px;color:var(--ink-3)}
+.tile .dia b{font-family:"JetBrains Mono",monospace;font-size:15px;font-weight:600;color:var(--ink)}
+.tile .dia b.pos{color:var(--good)} .tile .dia b.negt{color:var(--bad)}
 .pers{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
 .per{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px;display:flex;flex-direction:column;gap:4px}
 .per .pt{font-size:13px;font-weight:600;color:var(--ink-2)}
@@ -461,11 +464,13 @@ function dibujarCartera() {
   // cartera
   $("#t-cartera").textContent = `Cartera de ${lista.length}`;
   $("#t-sub").textContent = `${pct(1 / lista.length, 0)} en cada una`;
+  const dd = t => (C.dia || {})[t] ?? null;
   $("#tiles").innerHTML = lista.map((t, i) => {
     const d = C.desde_eleccion[t], di = (C.desde_ingreso || {})[t] ?? d, ing = (C.ingreso || {})[t] || C.fecha;
     return `<div class="tile">
       <div class="top"><span class="rk">${String(i + 1).padStart(2, "0")}</span><span class="peso">${pct(1 / lista.length, 0)}</span></div>
       <div class="tk">${esc(t)}</div><div class="nm">${esc(nombre(t))}</div>
+      <div class="dia"><b class="${clsSigno(dd(t))}">${pct(dd(t), 1, true)}</b><span>el ${fechaCorta(M.precios_al)}</span></div>
       <div class="met">
         <div>12 meses<b class="pos">${pct(C.momentum_eleccion[t], 0, true)}</b></div>
         <div>en cartera<b class="${clsSigno(di)}">${pct(di, 1, true)}</b><i>desde ${mesAnio(ing)}</i></div>
@@ -477,6 +482,10 @@ function dibujarCartera() {
   $("#resumen").innerHTML = `<span class="l">Desde el ${fechaCorta(C.fecha)}</span>` +
     `<span><span class="v ${clsSigno(prom)}">${pct(prom, 1, true)}</span> <span class="l">cartera</span></span>` +
     `<span><span class="v ${clsSigno(C.spy_desde_eleccion)}">${pct(C.spy_desde_eleccion, 1, true)}</span> <span class="l">SPY</span></span>` +
+    (C.dia ? (() => { const xs = lista.map(dd).filter(x => x != null), pd = xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null;
+      return `<span class="l">El ${fechaCorta(M.precios_al)}</span>` +
+        `<span><span class="v ${clsSigno(pd)}">${pct(pd, 1, true)}</span> <span class="l">cartera</span></span>` +
+        `<span><span class="v ${clsSigno(C.spy_dia)}">${pct(C.spy_dia, 1, true)}</span> <span class="l">SPY</span></span>`; })() : "") +
     `<span class="l">precios al ${fechaCorta(M.precios_al)}</span>`;
   // resultados por período
   const P = v.periodos || [];
